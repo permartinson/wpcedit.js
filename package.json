@@ -1,0 +1,28 @@
+{
+  "name": "wpcedit",
+  "version": "0.4.2",
+  "description": "WPCEdit.js is a javascript library based on the WPC Edit app, used for viewing and editing contens of WPC pinball rom files",
+  "author": "Per Martinson, original code by Garrett Lee",
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "tsc --build --clean",
+    "start": "lite-server",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "main": "dist/WPCEdit.js",
+  "dependencies": {
+    "register-service-worker": "^1.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "^18.13.0",
+    "@vue/cli-plugin-pwa": "~5.0.0",
+    "lite-server": "^2.6.1",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.1"
+  },
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "wpcedit-typescript"
+  }
+}
