@@ -1,6 +1,6 @@
 {
   "name": "wpcedit",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "WPCEdit.js is a javascript library based on the WPC Edit app, used for viewing and editing contens of WPC pinball rom files",
   "author": "Per Martinson, original code by Garrett Lee",
   "scripts": {

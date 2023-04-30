@@ -104,5 +104,3 @@ I would like to include an example implementation of a rendering, but for now yo
 ## License
 
 WPCEdit.js is released as public domain, just like the original WPC Edit by Garrett Lee.
-
- `I hope that helps! Let me know if you have any further questions.`
