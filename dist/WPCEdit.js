@@ -8,17 +8,16 @@ import { ROM } from "./stores/ROM.js";
 import { DataTypes } from "./resources/Constants.js";
 import { Checksum } from "./classes/Checksum.js";
 export class WPCEdit {
-    constructor(mode = 1) {
-        Settings.DataType = mode;
+    constructor() {
         Settings.init();
         FullFrameImageData.init();
         VariableSizedImageData.init();
     }
-    static init(mode = 1) {
+    static init() {
         if (WPCEdit.instance) {
             return this.instance;
         }
-        this.instance = new WPCEdit(mode);
+        this.instance = new WPCEdit();
         return this.instance;
     }
     static reloadData() {

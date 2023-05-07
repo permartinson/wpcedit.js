@@ -10,5 +10,4 @@ export class Settings {
     }
 }
 Settings.VerboseMode = false;
-Settings.DataType = 1;
 ;

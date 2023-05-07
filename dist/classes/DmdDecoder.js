@@ -1,4 +1,4 @@
-import { WriteTypes, ImageCodes, DataTypes, PlaneStatuses, WPC } from "../resources/Constants.js";
+import { WriteTypes, ImageCodes, DataTypes, PlaneStatuses, WPC, } from "../resources/Constants.js";
 import { DataParser } from "./DataParser.js";
 import { toHex, logStr } from "../resources/Helpers.js";
 import { VariableSizedImageData } from "../stores/VariableSizedImageData.js";
@@ -9,8 +9,7 @@ export class DmdDecoder {
         this.PreviousPlaneDataPane0 = new Uint8Array();
         this.PreviousPlaneDataPane1 = new Uint8Array();
     }
-    init() {
-    }
+    init() { }
     static decodeNextIndex(count, dataType) {
         switch (dataType) {
             case DataTypes.Graphics:
@@ -22,13 +21,18 @@ export class DmdDecoder {
                 break;
             case DataTypes.FontData:
             case DataTypes.AniData:
-                if (VariableSizedImageData.Planes.Plane0.Plane_Status == PlaneStatuses.Valid) {
-                    if ((VariableSizedImageData.CurrentImageXShift + WPC.DmdCols) < VariableSizedImageData.CurrentImageXSize) {
-                        VariableSizedImageData.CurrentImageXShift += (WPC.ImageShiftXPixelCount * count);
+                if (VariableSizedImageData.Planes.Plane0.Plane_Status ==
+                    PlaneStatuses.Valid) {
+                    if (VariableSizedImageData.CurrentImageXShift + WPC.DmdCols <
+                        VariableSizedImageData.CurrentImageXSize) {
+                        VariableSizedImageData.CurrentImageXShift +=
+                            WPC.ImageShiftXPixelCount * count;
                         break;
                     }
-                    if ((VariableSizedImageData.CurrentImageYShift + WPC.DmdRows) < VariableSizedImageData.CurrentImageYSize) {
-                        VariableSizedImageData.CurrentImageYShift += (WPC.ImageShiftYPixelCount * count);
+                    if (VariableSizedImageData.CurrentImageYShift + WPC.DmdRows <
+                        VariableSizedImageData.CurrentImageYSize) {
+                        VariableSizedImageData.CurrentImageYShift +=
+                            WPC.ImageShiftYPixelCount * count;
                         break;
                     }
                 }
@@ -49,14 +53,14 @@ export class DmdDecoder {
     }
     static incrementVariableSizedImageIndex(pTableIndex, pImageIndex) {
         let tmpImageIndex;
-        if ((pTableIndex == null) || (pImageIndex == null)) {
+        if (pTableIndex == null || pImageIndex == null) {
             return [-1, -1];
         }
         tmpImageIndex = DataParser.getLastImageIndex(pImageIndex, pTableIndex)[0];
         if (tmpImageIndex == -1) {
             return [-1, -1];
         }
-        if (((pImageIndex) & 0xFF) < (tmpImageIndex & 0xFF)) {
+        if ((pImageIndex & 0xff) < (tmpImageIndex & 0xff)) {
             pImageIndex = DataParser.getNextImageIndex(pImageIndex, pTableIndex);
             if (pImageIndex == -1) {
                 return [-1, -1];
@@ -75,14 +79,14 @@ export class DmdDecoder {
     }
     static decrementVariableSizedImageIndex(pTableIndex, pImageIndex) {
         let tmpImageIndex;
-        if ((pTableIndex == null) || (pImageIndex == null)) {
+        if (pTableIndex == null || pImageIndex == null) {
             return [-1, -1];
         }
         tmpImageIndex = DataParser.getFirstImageIndex(pTableIndex);
         if (tmpImageIndex == -1) {
             return [-1, -1];
         }
-        if (((pImageIndex) & 0xFF) > (tmpImageIndex & 0xFF)) {
+        if ((pImageIndex & 0xff) > (tmpImageIndex & 0xff)) {
             pImageIndex = DataParser.getPrevImageIndex(pImageIndex, pTableIndex);
             if (pImageIndex == -1) {
                 return [-1, -1];
@@ -90,7 +94,7 @@ export class DmdDecoder {
             return [pTableIndex, pImageIndex];
         }
         if (pTableIndex > VariableSizedImageData.minTableIndex) {
-            pTableIndex = (pTableIndex) - 1;
+            pTableIndex = pTableIndex - 1;
             if (DataParser.getLastImageIndex(pImageIndex, pTableIndex)[0] != 0) {
                 return [-1, -1];
             }
@@ -101,22 +105,25 @@ export class DmdDecoder {
     static decodePreviousIndex(count, dataType) {
         switch (dataType) {
             case DataTypes.Graphics:
-                while ((count--) && (FullFrameImageData.CurrentImageIndex)) {
+                while (count-- && FullFrameImageData.CurrentImageIndex) {
                     FullFrameImageData.CurrentImageIndex--;
                 }
                 break;
             case DataTypes.FontData:
             case DataTypes.AniData:
-                if (VariableSizedImageData.Planes.Plane0.Plane_Status == PlaneStatuses.Valid) {
+                if (VariableSizedImageData.Planes.Plane0.Plane_Status ==
+                    PlaneStatuses.Valid) {
                     if (VariableSizedImageData.CurrentImageYShift > 0) {
-                        VariableSizedImageData.CurrentImageYShift -= (WPC.ImageShiftYPixelCount * count);
+                        VariableSizedImageData.CurrentImageYShift -=
+                            WPC.ImageShiftYPixelCount * count;
                         if (VariableSizedImageData.CurrentImageYShift < 0) {
                             VariableSizedImageData.CurrentImageYShift = 0;
                         }
                         break;
                     }
                     if (VariableSizedImageData.CurrentImageXShift > 0) {
-                        VariableSizedImageData.CurrentImageXShift -= (WPC.ImageShiftXPixelCount * count);
+                        VariableSizedImageData.CurrentImageXShift -=
+                            WPC.ImageShiftXPixelCount * count;
                         if (VariableSizedImageData.CurrentImageXShift < 0) {
                             VariableSizedImageData.CurrentImageXShift = 0;
                         }
@@ -139,7 +146,7 @@ export class DmdDecoder {
     }
     static decodeFullFrameGraphic(GraphicIndex) {
         FullFrameImageData.Planes.Plane0 = this.decodeImageToPlane(GraphicIndex);
-        FullFrameImageData.Planes.Plane1 = this.decodeImageToPlane((GraphicIndex + 1));
+        FullFrameImageData.Planes.Plane1 = this.decodeImageToPlane(GraphicIndex + 1);
     }
     static decodeVariableSizedImageData() {
         const result = DmdDecoder.decodeVariableSizedImageIndexToPlane(VariableSizedImageData.CurrentTableIndex, VariableSizedImageData.CurrentImageIndex);
@@ -156,7 +163,7 @@ export class DmdDecoder {
         let Addr;
         let pPlanes = {
             Plane0: DmdDecoder.decodePlaneInit(),
-            Plane1: DmdDecoder.decodePlaneInit()
+            Plane1: DmdDecoder.decodePlaneInit(),
         };
         VariableSizedImageData.CurrentImageXSize = 0;
         VariableSizedImageData.CurrentImageYSize = 0;
@@ -167,7 +174,7 @@ export class DmdDecoder {
             pPlanes.Plane1.Plane_Status = PlaneStatuses.BadDimension;
             return [-1, pPlanes];
         }
-        DataPtr = (Addr);
+        DataPtr = Addr;
         pPlanes = DmdDecoder.decodeVariableSizedImage(DataPtr, pPlanes, TableIndex)[1];
         return [0, pPlanes];
     }
@@ -183,7 +190,7 @@ export class DmdDecoder {
             logStr(`Unexpected problem looking up TableIndex ${TableIndex} height & spacing`);
             return [-1, pPlanes];
         }
-        if ((ch > 0) && (ch <= WPC.DmdCols)) {
+        if (ch > 0 && ch <= WPC.DmdCols) {
             pPlanes = DmdDecoder.decodeVariableSizedImageIndex_NoHeader(Source, pPlanes, TableHeight);
         }
         else {
@@ -207,35 +214,41 @@ export class DmdDecoder {
         let i, j;
         let DestPtr = 0;
         Dest = new Uint8Array(Math.ceil(Math.ceil(ImageWidth / 8) * 8 * ImageHeight) / 8);
-        if ((SourcePtr) >= ROM.endPtr) {
+        if (SourcePtr >= ROM.endPtr) {
             return [PlaneStatuses.ImageOutOfRange, Dest, SourcePtr];
         }
         if (VariableSizedImageData.CurrentImageYShift == -1) {
             VariableSizedImageData.CurrentImageYShift = 0;
-            while ((WPC.DmdRows + VariableSizedImageData.CurrentImageYShift) < ImageHeight) {
+            while (WPC.DmdRows + VariableSizedImageData.CurrentImageYShift <
+                ImageHeight) {
                 VariableSizedImageData.CurrentImageYShift += WPC.ImageShiftYPixelCount;
             }
         }
         if (VariableSizedImageData.CurrentImageXShift == -1) {
             VariableSizedImageData.CurrentImageXShift = 0;
-            while ((WPC.DmdCols + VariableSizedImageData.CurrentImageXShift) < ImageWidth) {
+            while (WPC.DmdCols + VariableSizedImageData.CurrentImageXShift <
+                ImageWidth) {
                 VariableSizedImageData.CurrentImageXShift += WPC.ImageShiftXPixelCount;
             }
         }
         for (i = 0; i < VariableSizedImageData.CurrentImageYShift; i++) {
-            for (j = 0; j < ((ImageWidth + 7) / 8); j++) {
+            for (j = 0; j < (ImageWidth + 7) / 8; j++) {
                 if (SourcePtr++ >= ROM.endPtr) {
                     return [PlaneStatuses.ImageOutOfRange, Dest, SourcePtr];
                 }
             }
         }
-        for (i = 0; (i < ImageHeight) && (WriteCounter < Dest.length); i++) {
+        for (i = 0; i < ImageHeight && WriteCounter < Dest.length; i++) {
             for (j = 0; j < Math.floor((ImageWidth + 7) / 8); j++) {
                 ch = ROM.byteAtAddr(SourcePtr);
                 if (SourcePtr++ >= ROM.endPtr) {
                     return [PlaneStatuses.ImageOutOfRange, Dest, SourcePtr];
                 }
-                if ((j >= Math.floor((VariableSizedImageData.CurrentImageXShift + 7) / 8)) && (j < Math.floor((ImageWidth + VariableSizedImageData.CurrentImageXShift) + 7) / 8)) {
+                if (j >=
+                    Math.floor((VariableSizedImageData.CurrentImageXShift + 7) / 8) &&
+                    j <
+                        Math.floor(ImageWidth + VariableSizedImageData.CurrentImageXShift + 7) /
+                            8) {
                     const result = this.writeNext8BitValueAnySize(WriteCounter, Dest, DestPtr, ch, WriteTypes.Rows, ImageWidth, ImageHeight);
                     DestPtr = result[0];
                     Dest = result[1];
@@ -243,8 +256,9 @@ export class DmdDecoder {
                 }
             }
         }
-        for (i = 0; i < (ImageHeight - (WPC.DmdRows + VariableSizedImageData.CurrentImageYShift)); i++) {
-            for (j = 0; j < ((ImageWidth + 7) / 8); j++) {
+        for (i = 0; i <
+            ImageHeight - (WPC.DmdRows + VariableSizedImageData.CurrentImageYShift); i++) {
+            for (j = 0; j < (ImageWidth + 7) / 8; j++) {
                 if (SourcePtr++ >= ROM.endPtr) {
                     return [PlaneStatuses.ImageOutOfRange, Dest, SourcePtr];
                 }
@@ -263,7 +277,7 @@ export class DmdDecoder {
         pPlanes.Plane0.Plane_Size = 0;
         pPlanes.Plane1.Plane_Size = 0;
         ImageWidth = ROM.byteAtAddr(SourcePtr);
-        if ((SourcePtr++) >= ROM.endPtr) {
+        if (SourcePtr++ >= ROM.endPtr) {
             logStr(`Address is out of bounds in decodeVariableSizedImageIndex_NoHeader()`);
             return pPlanes;
         }
@@ -334,20 +348,20 @@ export class DmdDecoder {
                         logStr(`decodeVariableSizedImageIndex_Header(), Unexpected problem looking up TableIndex ${TableIndex} WPC Page`);
                         return pPlanes;
                     }
-                    TmpBuf[0] = ROM.byteAtAddr(SourcePtr) & 0xFF;
+                    TmpBuf[0] = ROM.byteAtAddr(SourcePtr) & 0xff;
                     SourcePtr++;
                     if (SourcePtr >= ROM.endPtr) {
                         return pPlanes;
                     }
-                    TmpBuf[1] = ROM.byteAtAddr(SourcePtr) & 0xFF;
+                    TmpBuf[1] = ROM.byteAtAddr(SourcePtr) & 0xff;
                     SourcePtr++;
                     if (SourcePtr >= ROM.endPtr) {
                         return pPlanes;
                     }
-                    TmpBuf[2] = (Page & 0xFF);
+                    TmpBuf[2] = Page & 0xff;
                     Addr = DataParser.getROMAddressFromAddrOf3ByteWPCAddrPage(TmpBuf[0]);
                     if (Addr == -1) {
-                        logStr(`decodeVariableSizedImageIndex_Header(), Unexpected problem looking up ROM address of bi-color plane from 3-byte WPC Addr ${TmpBuf[0] & 0xFF} ${(TmpBuf[1] & 0xFF)} ${(TmpBuf[2] & 0xFF)}`);
+                        logStr(`decodeVariableSizedImageIndex_Header(), Unexpected problem looking up ROM address of bi-color plane from 3-byte WPC Addr ${TmpBuf[0] & 0xff} ${TmpBuf[1] & 0xff} ${TmpBuf[2] & 0xff}`);
                         return pPlanes;
                     }
                     pBiColor = ROM.byteAtAddr(Addr);
@@ -380,7 +394,7 @@ export class DmdDecoder {
         let DMDPlane;
         DMDPlane = DmdDecoder.decodePlaneInit();
         DMDPlane.Table_Address = FullFrameImageData.TableAddress;
-        Addr = FullFrameImageData.TableAddress + (Index * 3);
+        Addr = FullFrameImageData.TableAddress + Index * 3;
         if (Addr >= ROM.size) {
             DMDPlane.Plane_Status = PlaneStatuses.TableEntryOutOfRange;
             return DMDPlane;
@@ -397,7 +411,7 @@ export class DmdDecoder {
         }
         OriginalDataPtr = DataPtr = Addr;
         DMDPlane = this.decodeFullFrameGraphicImage(Addr, DMDPlane, SkipDecoding);
-        DMDPlane.Plane_Size = (DataPtr - OriginalDataPtr);
+        DMDPlane.Plane_Size = DataPtr - OriginalDataPtr;
         return DMDPlane;
     }
     static decodePlaneInit() {
@@ -411,7 +425,7 @@ export class DmdDecoder {
             Plane_Status: PlaneStatuses.Valid,
             Plane_Encoding: 255,
             Address: 0,
-            Table_Address: 0
+            Table_Address: 0,
         };
         return pPlane;
     }
@@ -419,18 +433,18 @@ export class DmdDecoder {
         let OriginalDataPtr = Source;
         let Dest = new Uint8Array(pPlane.Plane_Data);
         let ch = ROM.byteAtAddr(Source);
-        pPlane.Plane_Encoding = ch & 0x0F;
+        pPlane.Plane_Encoding = ch & 0x0f;
         pPlane.Address = Source;
         if (SkipDecoding) {
             return pPlane;
         }
         Source++;
-        if ((Source) >= ROM.endPtr) {
+        if (Source >= ROM.endPtr) {
             pPlane.Plane_Status = PlaneStatuses.ImageOutOfRange;
             return pPlane;
         }
         logStr(`Type ${toHex(ch)}`);
-        switch (ch & 0x0F) {
+        switch (ch & 0x0f) {
             case 0x00:
                 Dest = this.decode_00(Source);
                 pPlane.Plane_Data = Dest;
@@ -478,12 +492,12 @@ export class DmdDecoder {
                 pPlane.Plane_Data = result_09[0];
                 pPlane.Plane_Skipped = result_09[1];
                 return pPlane;
-            case 0x0A:
+            case 0x0a:
                 const result_0A = this.decode_0A(Source);
                 pPlane.Plane_Data = result_0A[0];
                 pPlane.Plane_Skipped = result_0A[1];
                 return pPlane;
-            case 0x0B:
+            case 0x0b:
                 const result_0B = this.decode_0B(Source);
                 pPlane.Plane_Data = result_0B[0];
                 pPlane.Plane_Skipped = result_0B[1];
@@ -495,7 +509,7 @@ export class DmdDecoder {
                 pPlane.Plane_Size = OriginalDataPtr - Source;
                 return pPlane;
         }
-        if ((Source) >= ROM.endPtr) {
+        if (Source >= ROM.endPtr) {
             pPlane.Plane_Status = PlaneStatuses.ImageOutOfRange;
             return pPlane;
         }
@@ -527,7 +541,7 @@ export class DmdDecoder {
         let WriteCounter;
         SpecialFlagByte = ROM.byteAtAddr(SourcePtr);
         SourcePtr++;
-        if ((SourcePtr) >= ROM.endPtr) {
+        if (SourcePtr >= ROM.endPtr) {
             return Dest;
         }
         WriteCounter = 0;
@@ -554,7 +568,7 @@ export class DmdDecoder {
                     DestPtr = result[0];
                     Dest = result[1];
                     WriteCounter = result[2];
-                } while ((--Value1) && (WriteCounter < WPC.DmdPageBytes));
+                } while (--Value1 && WriteCounter < WPC.DmdPageBytes);
             }
             else {
                 const result = DmdDecoder.writeNext8BitValue(WriteCounter, Dest, DestPtr, ch, Type);
@@ -580,7 +594,7 @@ export class DmdDecoder {
         let Header = {
             ReadMask: 0x80,
             RepeatBytes: [0, 0, 0, 0, 0, 0, 0, 0],
-            SpecialFlagByte: ROM.byteAtAddr(SourcePtr)
+            SpecialFlagByte: ROM.byteAtAddr(SourcePtr),
         };
         let ch;
         let i;
@@ -625,7 +639,7 @@ export class DmdDecoder {
                     DestPtr = result[0];
                     Dest = result[1];
                     WriteCounter = result[2];
-                } while ((--Value1) && (WriteCounter < WPC.DmdPageBytes));
+                } while (--Value1 && WriteCounter < WPC.DmdPageBytes);
             }
             else {
                 const result = DmdDecoder.writeNext8BitValue(WriteCounter, Dest, DestPtr, ch, Type);
@@ -685,7 +699,7 @@ export class DmdDecoder {
                     DestPtr = result[0];
                     Dest = result[1];
                     WriteCounter = result[2];
-                    const resultXorFlags = DmdDecoder.writeNext8BitValue(XorFlagsCounter, XorFlags, XorFlagsPtr, 0xFF, Type);
+                    const resultXorFlags = DmdDecoder.writeNext8BitValue(XorFlagsCounter, XorFlags, XorFlagsPtr, 0xff, Type);
                     XorFlagsPtr = resultXorFlags[0];
                     XorFlags = resultXorFlags[1];
                     XorFlagsCounter = resultXorFlags[2];
@@ -693,7 +707,7 @@ export class DmdDecoder {
                     XorBitsPtr = resultXorBits[0];
                     XorBits = resultXorBits[1];
                     XorBitsCounter = resultXorBits[2];
-                } while ((--Value1) && (WriteCounter < WPC.DmdPageBytes));
+                } while (--Value1 && WriteCounter < WPC.DmdPageBytes);
             }
             else {
                 const result = DmdDecoder.writeNext8BitValue(WriteCounter, Dest, DestPtr, ch, Type);
@@ -740,11 +754,11 @@ export class DmdDecoder {
                     DestPtr = result[0];
                     Dest = result[1];
                     WriteCounter = result[2];
-                    const resultSkipped = DmdDecoder.writeNext8BitValue(SkippedCounter, Skipped, SkippedPtr, 0xFF, Type);
+                    const resultSkipped = DmdDecoder.writeNext8BitValue(SkippedCounter, Skipped, SkippedPtr, 0xff, Type);
                     SkippedPtr = resultSkipped[0];
                     Skipped = resultSkipped[1];
                     SkippedCounter = resultSkipped[2];
-                } while ((--count) && (WriteCounter < WPC.DmdPageBytes));
+                } while (--count && WriteCounter < WPC.DmdPageBytes);
             }
             if (WriteCounter >= WPC.DmdPageBytes) {
                 continueLooping = false;
@@ -781,7 +795,7 @@ export class DmdDecoder {
                     SkippedPtr = resultSkipped[0];
                     Skipped = resultSkipped[1];
                     SkippedCounter = resultSkipped[2];
-                } while ((--count) && (WriteCounter < WPC.DmdPageBytes));
+                } while (--count && WriteCounter < WPC.DmdPageBytes);
             }
             if (WriteCounter >= WPC.DmdPageBytes) {
                 continueLooping = false;
@@ -806,7 +820,7 @@ export class DmdDecoder {
         let Header = {
             ReadMask: 0x80,
             RepeatBytes: [0, 0, 0, 0, 0, 0, 0, 0],
-            SpecialFlagByte: 0
+            SpecialFlagByte: 0,
         };
         let count;
         let i;
@@ -829,11 +843,11 @@ export class DmdDecoder {
                     DestPtr = result[0];
                     Dest = result[1];
                     WriteCounter = result[2];
-                    const resultSkipped = DmdDecoder.writeNext8BitValue(SkippedCounter, Skipped, SkippedPtr, 0xFF, Type);
+                    const resultSkipped = DmdDecoder.writeNext8BitValue(SkippedCounter, Skipped, SkippedPtr, 0xff, Type);
                     SkippedPtr = resultSkipped[0];
                     Skipped = resultSkipped[1];
                     SkippedCounter = resultSkipped[2];
-                } while ((--count) && (WriteCounter < WPC.DmdPageBytes));
+                } while (--count && WriteCounter < WPC.DmdPageBytes);
             }
             if (WriteCounter >= WPC.DmdPageBytes) {
                 continueLooping = false;
@@ -883,7 +897,7 @@ export class DmdDecoder {
                     SkippedPtr = resultSkipped[0];
                     Skipped = resultSkipped[1];
                     SkippedCounter = resultSkipped[2];
-                } while ((--count) && (WriteCounter < WPC.DmdPageBytes));
+                } while (--count && WriteCounter < WPC.DmdPageBytes);
             }
             if (WriteCounter >= WPC.DmdPageBytes) {
                 continueLooping = false;
@@ -901,18 +915,18 @@ export class DmdDecoder {
     static writeNext8BitValueAnySize(WriteCounterPtr, Dest, DestPtr, ch, Type, cols, rows) {
         Dest.set([ch], DestPtr);
         WriteCounterPtr++;
-        if ((WriteCounterPtr) >= (Math.ceil(Math.ceil(cols / 8) * 8 * rows) / 8)) {
+        if (WriteCounterPtr >= Math.ceil(Math.ceil(cols / 8) * 8 * rows) / 8) {
             return [DestPtr, Dest, WriteCounterPtr];
         }
         if (Type == WriteTypes.Rows) {
             DestPtr++;
             return [DestPtr, Dest, WriteCounterPtr];
         }
-        if (!(WriteCounterPtr % (rows))) {
-            DestPtr -= (((cols / 8) * (rows - 2)) + ((cols / 8) - 1));
+        if (!(WriteCounterPtr % rows)) {
+            DestPtr -= (cols / 8) * (rows - 2) + (cols / 8 - 1);
         }
         else {
-            DestPtr += (cols / 8);
+            DestPtr += cols / 8;
         }
         return [DestPtr, Dest, WriteCounterPtr];
     }
@@ -966,11 +980,11 @@ export class DmdDecoder {
             }
         }
         returnValues = [Header, ReturnValue, SourcePtr];
-        return (returnValues);
+        return returnValues;
     }
     static readNextBit(Header, SourcePtr) {
         let returnValues;
-        let ch = (ROM.byteAtAddr(SourcePtr) & Header.ReadMask);
+        let ch = ROM.byteAtAddr(SourcePtr) & Header.ReadMask;
         if (!(Header.ReadMask >>= 1)) {
             Header.ReadMask = 0x80;
             SourcePtr++;

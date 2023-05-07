@@ -59,15 +59,15 @@ export class VariableSizedImage {
     placeInFullFrame(vsPlane, xOffset, yOffset, fullFrameImage = new Uint8Array(WPC.DmdPageBytes)) {
         const vsByteWidth = Math.ceil(vsPlane.width / 8);
         const bitOffset = xOffset % 8;
-        const bytesPerRow = Math.ceil((bitOffset + (vsPlane.width) + 1) / 8);
+        const bytesPerRow = Math.ceil((bitOffset + vsPlane.width + 1) / 8);
         const vsImageLength = bytesPerRow * vsPlane.height;
-        const startMask = 0xFF >> (8 - bitOffset);
-        const endMask = (0xFF << (xOffset + vsPlane.width) % 8) & 0xFF;
+        const startMask = 0xff >> (8 - bitOffset);
+        const endMask = (0xff << (xOffset + vsPlane.width) % 8) & 0xff;
         for (let i = 0; i < vsImageLength; i++) {
             const col = i % bytesPerRow;
             const row = Math.floor(i / bytesPerRow);
             const prevByteIndex = vsByteWidth * row + (col - 1);
-            const thisByteIndex = vsByteWidth * row + (col);
+            const thisByteIndex = vsByteWidth * row + col;
             const destXPos = Math.floor(xOffset / 8) + col;
             const destYPos = yOffset + row;
             const destPos = destYPos * (WPC.DmdCols / 8) + destXPos;
@@ -76,16 +76,16 @@ export class VariableSizedImage {
             let prevByte = 0x00;
             let thisByte = 0x00;
             if (col > 0) {
-                prevByte = ((vsPlane.image[prevByteIndex]) >> 8 - bitOffset) & 0xFF;
+                prevByte = (vsPlane.image[prevByteIndex] >> (8 - bitOffset)) & 0xff;
                 mergeByte = 0x00;
             }
             if (col < bytesPerRow) {
-                thisByte = ((vsPlane.image[thisByteIndex]) << bitOffset) & 0xFF;
-                thisByte = (mergeByte + thisByte & 0xFF);
+                thisByte = (vsPlane.image[thisByteIndex] << bitOffset) & 0xff;
+                thisByte = (mergeByte + thisByte) & 0xff;
             }
             let destByte = prevByte + thisByte;
             if (col == bytesPerRow - 1) {
-                destByte = destByte & (0xFF >> (8 - (xOffset + vsPlane.width) % 8));
+                destByte = destByte & (0xff >> (8 - ((xOffset + vsPlane.width) % 8)));
                 destByte = destByte + (sourceByte & endMask);
             }
             fullFrameImage[destPos] = destByte;
@@ -95,28 +95,37 @@ export class VariableSizedImage {
     static _getCurrent() {
         DmdDecoder.decodeVariableSizedImageIndexToPlane(VariableSizedImageData.CurrentTableIndex, VariableSizedImageData.CurrentImageIndex);
         DmdDecoder.decodeVariableSizedImageData();
-        VariableSizedImage.currentPlane.image = VariableSizedImageData.Planes.Plane0.Plane_Data;
-        VariableSizedImage.currentPlane.mask = VariableSizedImageData.Planes.Plane0.Plane_Skipped;
-        VariableSizedImage.currentPlane.xor = VariableSizedImageData.Planes.Plane0.Plane_XorBits;
-        VariableSizedImage.currentPlane.type = VariableSizedImageData.Planes.Plane0.Plane_Encoding;
-        VariableSizedImage.currentPlane.width = VariableSizedImageData.CurrentImageXSize;
-        VariableSizedImage.currentPlane.height = VariableSizedImageData.CurrentImageYSize;
-        VariableSizedImage.currentPlane.xOffset = VariableSizedImageData.CurrentImageXShift;
-        VariableSizedImage.currentPlane.yOffset = VariableSizedImageData.CurrentImageYShift;
+        VariableSizedImage.currentPlane.image =
+            VariableSizedImageData.Planes.Plane0.Plane_Data;
+        VariableSizedImage.currentPlane.mask =
+            VariableSizedImageData.Planes.Plane0.Plane_Skipped;
+        VariableSizedImage.currentPlane.xor =
+            VariableSizedImageData.Planes.Plane0.Plane_XorBits;
+        VariableSizedImage.currentPlane.type =
+            VariableSizedImageData.Planes.Plane0.Plane_Encoding;
+        VariableSizedImage.currentPlane.width =
+            VariableSizedImageData.CurrentImageXSize;
+        VariableSizedImage.currentPlane.height =
+            VariableSizedImageData.CurrentImageYSize;
+        VariableSizedImage.currentPlane.xOffset =
+            VariableSizedImageData.CurrentImageXShift;
+        VariableSizedImage.currentPlane.yOffset =
+            VariableSizedImageData.CurrentImageYShift;
         VariableSizedImage.currentPlane.address = VariableSizedImageData.Address;
-        VariableSizedImage.currentPlane.tableAddress = VariableSizedImageData.TableAddress;
+        VariableSizedImage.currentPlane.tableAddress =
+            VariableSizedImageData.TableAddress;
     }
 }
 VariableSizedImage.currentPlane = {
     width: 0,
     height: 0,
-    image: new Uint8Array,
-    mask: new Uint8Array,
+    image: new Uint8Array(),
+    mask: new Uint8Array(),
     xor: new Uint8Array(WPC.DmdPageBytes),
     flags: new Uint8Array(WPC.DmdPageBytes),
     xOffset: 0,
     yOffset: 0,
     type: 255,
     address: 0,
-    tableAddress: 0
+    tableAddress: 0,
 };

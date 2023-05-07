@@ -4,8 +4,7 @@ import { VariableSizedImageData } from "../stores/VariableSizedImageData.js";
 import { FullFrameImageData } from "../stores/FullFrameImageData.js";
 import { ROM } from "../stores/ROM.js";
 export class DataParser {
-    constructor() {
-    }
+    constructor() { }
     static init(romData) {
         if (DataParser.instance) {
             return this.instance;
@@ -24,8 +23,8 @@ export class DataParser {
         logStr(`Searching ROM for Master Animation Table Address`);
         for (Page = 0; Page < ROM.totalPages; Page++) {
             for (PageByteIdx = 0; PageByteIdx < WPC.PageLength; PageByteIdx++) {
-                switch (ROM.byteAtAddr(Ptr++) & 0xFF) {
-                    case 0xBE:
+                switch (ROM.byteAtAddr(Ptr++) & 0xff) {
+                    case 0xbe:
                         if (PageByteIdx >= WPC.PageLength - 16) {
                             break;
                         }
@@ -35,20 +34,23 @@ export class DataParser {
                             (ROM.byteAtAddr(Ptr + 5) & 0xff) == 0xd6 &&
                             (ROM.byteAtAddr(Ptr + 7) & 0xff) == 0x34 &&
                             (ROM.byteAtAddr(Ptr + 8) & 0xff) == 0x04 &&
-                            ((ROM.byteAtAddr(Ptr + 9) & 0xff) == 0xf6 || (ROM.byteAtAddr(Ptr + 9) & 0xff) == 0xbd) &&
-                            ((ROM.byteAtAddr(Ptr + 12) & 0xff) == 0xbd || (ROM.byteAtAddr(Ptr + 12) & 0xff) == 0xf6)) {
+                            ((ROM.byteAtAddr(Ptr + 9) & 0xff) == 0xf6 ||
+                                (ROM.byteAtAddr(Ptr + 9) & 0xff) == 0xbd) &&
+                            ((ROM.byteAtAddr(Ptr + 12) & 0xff) == 0xbd ||
+                                (ROM.byteAtAddr(Ptr + 12) & 0xff) == 0xf6)) {
                             HitTablePtr = Ptr;
                             HitPagePtr = Ptr + 2;
-                            RomAddr = DataParser.getROMAddressFromAddrOf3ByteWPCAddrPage(HitTablePtr);
+                            RomAddr =
+                                DataParser.getROMAddressFromAddrOf3ByteWPCAddrPage(HitTablePtr);
                             if (RomAddr == -1) {
-                                logStr(`Error from getROMAddressFromAddrOf3ByteWPCAddrPage(), Passed it WPC Font Table Pointer opcode: ${toHex((HitTablePtr) & 0xFF)} ${toHex(((HitTablePtr + 1)) & 0xFF)}`);
+                                logStr(`Error from getROMAddressFromAddrOf3ByteWPCAddrPage(), Passed it WPC Font Table Pointer opcode: ${toHex(HitTablePtr & 0xff)} ${toHex((HitTablePtr + 1) & 0xff)}`);
                                 return -1;
                             }
                             logStr(`Address in ROM of Font Table Pointer ${toHex(RomAddr)}`);
                             if (dataType == DataTypes.FontData) {
                                 VariableSizedImageData.TableAddress = DataParser.processHitType(HitTypes.AddrAddr, HitTablePtr, HitPagePtr, Ptr);
                                 if (VariableSizedImageData.TableAddress == -1) {
-                                    logStr(`Error from ProcessHitType while trying to process Font Table Pointer opcode: ${toHex((HitTablePtr) & 0xFF)} ${toHex(((HitTablePtr + 1)) & 0xFF)}`);
+                                    logStr(`Error from ProcessHitType while trying to process Font Table Pointer opcode: ${toHex(HitTablePtr & 0xff)} ${toHex((HitTablePtr + 1) & 0xff)}`);
                                     break;
                                 }
                                 logStr(`Found Address in ROM of Font Table ${toHex(VariableSizedImageData.TableAddress)}`);
@@ -56,7 +58,8 @@ export class DataParser {
                             HitTablePtr = RomAddr;
                             HitPagePtr = RomAddr + 2;
                             WpcAddr =
-                                ((ROM.byteAtAddr(HitTablePtr & 0xff) << 8) + (ROM.byteAtAddr(HitTablePtr + 1) & 0xff)) &
+                                ((ROM.byteAtAddr(HitTablePtr & 0xff) << 8) +
+                                    (ROM.byteAtAddr(HitTablePtr + 1)) & 0xff) &
                                     0xffff;
                             if (WpcAddr >= WPC.BaseCodeAddrNonpagedRom &&
                                 WpcAddr < WPC.BaseCodeAddrNonpagedRom + WPC.NonpagedLength &&
@@ -67,11 +70,11 @@ export class DataParser {
                                 RomAddr += 3;
                             }
                             logStr(`Address in ROM of Graphics Table Pointer ${toHex(RomAddr)}`);
-                            HitTablePtr = (RomAddr);
-                            HitPagePtr = (RomAddr + 2);
+                            HitTablePtr = RomAddr;
+                            HitPagePtr = RomAddr + 2;
                             FullFrameImageData.TableAddress = this.processHitType(HitTypes.Addr, HitTablePtr, HitPagePtr, Ptr);
                             if (FullFrameImageData.TableAddress == -1) {
-                                logStr(`Error from processHitType while trying to process Graphic Table Pointer: ${toHex((HitTablePtr) & 0xFF)} ${toHex(((HitTablePtr + 1)) & 0xFF)}`);
+                                logStr(`Error from processHitType while trying to process Graphic Table Pointer: ${toHex(HitTablePtr & 0xff)} ${toHex((HitTablePtr + 1) & 0xff)}`);
                                 if (dataType == DataTypes.FontData) {
                                     return 0;
                                 }
@@ -84,7 +87,8 @@ export class DataParser {
                             HitTablePtr = ROM.byteAtAddr(RomAddr);
                             HitPagePtr = ROM.byteAtAddr(RomAddr + 2);
                             WpcAddr =
-                                ((ROM.byteAtAddr(HitTablePtr & 0xff) << 8) + (ROM.byteAtAddr(HitTablePtr + 1) & 0xff)) &
+                                ((ROM.byteAtAddr(HitTablePtr & 0xff) << 8) +
+                                    (ROM.byteAtAddr(HitTablePtr + 1) & 0xff)) &
                                     0xffff;
                             if (WpcAddr >= WPC.BaseCodeAddrNonpagedRom &&
                                 WpcAddr < WPC.BaseCodeAddrNonpagedRom + WPC.NonpagedLength &&
@@ -99,7 +103,7 @@ export class DataParser {
                             HitPagePtr = ROM.byteAtAddr(RomAddr + 2);
                             VariableSizedImageData.TableAddress = this.processHitType(HitTypes.Addr, HitTablePtr, HitPagePtr, Ptr);
                             if (VariableSizedImageData.TableAddress == -1) {
-                                logStr(`Error from processHitType while trying to process Animation Table Pointer: ${(HitTablePtr) & 0xFF} ${((HitTablePtr + 1)) & 0xFF}`);
+                                logStr(`Error from processHitType while trying to process Animation Table Pointer: ${HitTablePtr & 0xff} ${(HitTablePtr + 1) & 0xff}`);
                                 return -1;
                             }
                             logStr(`Found Address in ROM of Animation Table ${toHex(VariableSizedImageData.TableAddress)}`);
@@ -132,7 +136,8 @@ export class DataParser {
         if (VariableSizedImageData.TableAddress >= ROM.size) {
             return -1;
         }
-        if ((TableIndex < VariableSizedImageData.minTableIndex) || (TableIndex > VariableSizedImageData.maxTableIndex)) {
+        if (TableIndex < VariableSizedImageData.minTableIndex ||
+            TableIndex > VariableSizedImageData.maxTableIndex) {
             return -1;
         }
         Addr = this.getROMAddressOfVariableSizedImageTable(TableIndex);
@@ -140,16 +145,16 @@ export class DataParser {
             return -1;
         }
         Ptr = Addr;
-        while ((ROM.byteAtAddr(Ptr) & 0xFF) != 0x00) {
-            ImageIndexMin = ROM.byteAtAddr(Ptr++) & 0xFF;
-            ImageIndexMax = ROM.byteAtAddr(Ptr++) & 0xFF;
+        while ((ROM.byteAtAddr(Ptr) & 0xff) != 0x00) {
+            ImageIndexMin = ROM.byteAtAddr(Ptr++) & 0xff;
+            ImageIndexMax = ROM.byteAtAddr(Ptr++) & 0xff;
             if (ImageIndexMin > ImageIndexMax) {
                 return -1;
             }
-            if ((pImageIndex & 0xFF) < (ImageIndexMin & 0xFF)) {
+            if ((pImageIndex & 0xff) < (ImageIndexMin & 0xff)) {
                 return ImageIndexMin;
             }
-            if ((pImageIndex & 0xFF) < (ImageIndexMax & 0xFF)) {
+            if ((pImageIndex & 0xff) < (ImageIndexMax & 0xff)) {
                 return pImageIndex + 1;
             }
         }
@@ -161,7 +166,7 @@ export class DataParser {
         let counter = 0;
         let imageIndeces = [0];
         imageIndeces.length = 0;
-        while ((ImageIndex != -1)) {
+        while (ImageIndex != -1) {
             ImageIndex = this.getNextImageIndex(ImageIndex, TableIndex);
             counter++;
             if (ImageIndex != -1) {
@@ -187,7 +192,8 @@ export class DataParser {
         if (VariableSizedImageData.TableAddress >= ROM.size) {
             return -1;
         }
-        if ((TableIndex < VariableSizedImageData.minTableIndex) || (TableIndex > VariableSizedImageData.maxTableIndex)) {
+        if (TableIndex < VariableSizedImageData.minTableIndex ||
+            TableIndex > VariableSizedImageData.maxTableIndex) {
             return -1;
         }
         if (pImageIndex == null) {
@@ -199,24 +205,24 @@ export class DataParser {
         }
         Ptr = Addr;
         windUp = 0;
-        while ((ROM.byteAtAddr(Ptr) & 0xFF) != 0x00) {
+        while ((ROM.byteAtAddr(Ptr) & 0xff) != 0x00) {
             Ptr += 2;
             windUp++;
         }
         while (windUp != 0) {
             Ptr -= 2;
             windUp--;
-            ImageIndexMin = ROM.byteAtAddr(Ptr) & 0xFF;
-            ImageIndexMax = ROM.byteAtAddr((Ptr + 1)) & 0xFF;
+            ImageIndexMin = ROM.byteAtAddr(Ptr) & 0xff;
+            ImageIndexMax = ROM.byteAtAddr(Ptr + 1) & 0xff;
             if (ImageIndexMin > ImageIndexMax) {
                 return -1;
             }
-            if (((pImageIndex) & 0xFF) > (ImageIndexMax & 0xFF)) {
+            if ((pImageIndex & 0xff) > (ImageIndexMax & 0xff)) {
                 pImageIndex = ImageIndexMax;
                 return pImageIndex;
             }
-            if (((pImageIndex) & 0xFF) > (ImageIndexMin & 0xFF)) {
-                pImageIndex = (pImageIndex) - 1;
+            if ((pImageIndex & 0xff) > (ImageIndexMin & 0xff)) {
+                pImageIndex = pImageIndex - 1;
                 return pImageIndex;
             }
         }
@@ -252,7 +258,8 @@ export class DataParser {
                 VariableSizedImageData.maxTableIndex) {
             return [-1, -1];
         }
-        romAddr = DataParser.getAddrToWPCAddressOfVariableSizedImageTable(TableIndex);
+        romAddr =
+            DataParser.getAddrToWPCAddressOfVariableSizedImageTable(TableIndex);
         if (romAddr == -1) {
             return [-1, -1];
         }
@@ -339,11 +346,11 @@ export class DataParser {
     static getROMAddressFromAddrOf3ByteWPCAddrPage(pSrc) {
         let Addr;
         let Page;
-        const result = DataParser.extractWPCAddrAndPageFromBuffer((pSrc));
+        const result = DataParser.extractWPCAddrAndPageFromBuffer(pSrc);
         Addr = result[0];
         Page = result[1];
         if (Addr == -1) {
-            logStr(`Error from ExtractWPCAddrAndPageFromBuffer(), Passed it ptr to: ${ROM.byteAtAddr(pSrc) & 0xFF} ${(ROM.byteAtAddr(pSrc + 1)) & 0xFF} ${(ROM.byteAtAddr(pSrc + 2)) & 0xFF}`);
+            logStr(`Error from ExtractWPCAddrAndPageFromBuffer(), Passed it ptr to: ${ROM.byteAtAddr(pSrc) & 0xff} ${ROM.byteAtAddr(pSrc + 1) & 0xff} ${ROM.byteAtAddr(pSrc + 2) & 0xff}`);
             return -1;
         }
         logStr(`getROMAddressFromAddrOf3ByteWPCAddrPage() WPC TableAddress ${toHex(Addr)},${toHex(Page)}`);
@@ -371,9 +378,9 @@ export class DataParser {
         }
         Ptr = Addr;
         ImageNum = ImageFound = 0;
-        while ((ROM.byteAtAddr(Ptr) & 0xFF) != 0x00) {
-            ImageIndexMin = ROM.byteAtAddr(Ptr++) & 0xFF;
-            ImageIndexMax = ROM.byteAtAddr(Ptr++) & 0xFF;
+        while ((ROM.byteAtAddr(Ptr) & 0xff) != 0x00) {
+            ImageIndexMin = ROM.byteAtAddr(Ptr++) & 0xff;
+            ImageIndexMax = ROM.byteAtAddr(Ptr++) & 0xff;
             if (ImageIndexMin > ImageIndexMax) {
                 return -1;
             }
@@ -392,11 +399,11 @@ export class DataParser {
         Ptr++;
         TableHeight = ROM.byteAtAddr(Ptr++);
         TableSpacing = ROM.byteAtAddr(Ptr++);
-        Ptr += (ImageNum * 2);
-        Addr = (ROM.byteAtAddr(Ptr)) & 0xFF;
+        Ptr += ImageNum * 2;
+        Addr = ROM.byteAtAddr(Ptr) & 0xff;
         Addr = Addr << 8;
-        Addr |= (ROM.byteAtAddr(Ptr + 1)) & 0xFF;
-        Addr &= 0xFFFF;
+        Addr |= ROM.byteAtAddr(Ptr + 1) & 0xff;
+        Addr &= 0xffff;
         const result = DataParser.extractWPCAddrAndPageOfImageTable(TableIndex);
         Page = result[1];
         if (Page == -1) {
@@ -414,7 +421,7 @@ export class DataParser {
         let Page;
         Addr = ROM.byteAtAddr(pSrc) & 0xff;
         Addr = Addr << 8;
-        Addr = Addr | ROM.byteAtAddr(pSrc + 1) & 0xff;
+        Addr = Addr | (ROM.byteAtAddr(pSrc + 1) & 0xff);
         Addr = Addr & 0xffff;
         Page = ROM.byteAtAddr(pSrc + 2) & 0xff;
         if (Addr >= WPC.BaseCodeAddrNonpagedRom &&
@@ -453,19 +460,19 @@ export class DataParser {
         let pTbl;
         switch (HitType) {
             case HitTypes.AddrAddrAddr:
-                logStr(`Potential Match. HitType ${toHex((ROM.byteAtAddr(Ptr - 1)) & 0xFF)}, HitBytes ${toHex(ROM.byteAtAddr(HitTablePtr) & 0xFF)} ${toHex(ROM.byteAtAddr((HitTablePtr + 1)) & 0xFF)}`);
+                logStr(`Potential Match. HitType ${toHex(ROM.byteAtAddr(Ptr - 1) & 0xff)}, HitBytes ${toHex(ROM.byteAtAddr(HitTablePtr) & 0xff)} ${toHex(ROM.byteAtAddr(HitTablePtr + 1) & 0xff)}`);
                 Addr = DataParser.getROMAddressFromAddrOf3ByteWPCAddrPage(HitTablePtr);
                 if (Addr == -1) {
-                    logStr(`Error from getROMAddressFromAddrOf3ByteWPCAddrPage(), Passed it WPC Ptr to ${((HitTablePtr) & 0xFF)} ${((HitTablePtr + 1)) & 0xFF}`);
+                    logStr(`Error from getROMAddressFromAddrOf3ByteWPCAddrPage(), Passed it WPC Ptr to ${HitTablePtr & 0xff} ${(HitTablePtr + 1) & 0xff}`);
                     return -1;
                 }
                 logStr(`HitTypes.AddrAddrAddr derived ROM TableAddressAddress ${Addr}, going to HitTypes.AddrAddr`);
                 HitTablePtr = ROM.byteAtAddr(Addr);
             case HitTypes.AddrAddr:
-                logStr(`Potential Match. HitType ${toHex((ROM.byteAtAddr(Ptr - 1)) & 0xFF)}, HitBytes ${toHex(ROM.byteAtAddr(HitTablePtr) & 0xFF)} ${toHex((ROM.byteAtAddr(HitTablePtr + 1)) & 0xFF)}`);
+                logStr(`Potential Match. HitType ${toHex(ROM.byteAtAddr(Ptr - 1) & 0xff)}, HitBytes ${toHex(ROM.byteAtAddr(HitTablePtr) & 0xff)} ${toHex(ROM.byteAtAddr(HitTablePtr + 1) & 0xff)}`);
                 Addr = DataParser.getROMAddressFromAddrOf3ByteWPCAddrPage(HitTablePtr);
                 if (Addr == -1) {
-                    logStr(`Error from GetROMAddressFromAddrOf3ByteWPCAddrPage(), Passed it WPC Ptr to ${(HitTablePtr) & 0xFF} ${((HitTablePtr + 1)) & 0xFF}`);
+                    logStr(`Error from GetROMAddressFromAddrOf3ByteWPCAddrPage(), Passed it WPC Ptr to ${HitTablePtr & 0xff} ${(HitTablePtr + 1) & 0xff}`);
                     return -1;
                 }
                 logStr(`HitTypes.AddrAddr derived TableAddress of ${toHex(Addr)} going to HitTypes.Addr`);
@@ -476,8 +483,8 @@ export class DataParser {
                     logStr("HitTypes.Addr, but HitTablePtr is NULL");
                     return -1;
                 }
-                HitBuf[0] = (HitTablePtr);
-                HitBuf[1] = (HitTablePtr + 1);
+                HitBuf[0] = HitTablePtr;
+                HitBuf[1] = HitTablePtr + 1;
                 if (HitPagePtr == null) {
                     let Addr;
                     Addr = HitBuf[0] & 0xff;
@@ -494,13 +501,13 @@ export class DataParser {
                 else {
                     HitBuf[2] = ROM.byteAtAddr(HitPagePtr);
                 }
-                logStr(`Potential Match. HitType ${toHex((ROM.byteAtAddr(Ptr - 1)) & 0xFF)}, HitBytes ${toHex(ROM.byteAtAddr(HitBuf[0]) & 0xFF)} ${toHex(ROM.byteAtAddr((HitBuf[1])) & 0xFF)} ${toHex(((HitBuf[2])) & 0xFF)}`);
+                logStr(`Potential Match. HitType ${toHex(ROM.byteAtAddr(Ptr - 1) & 0xff)}, HitBytes ${toHex(ROM.byteAtAddr(HitBuf[0]) & 0xff)} ${toHex(ROM.byteAtAddr(HitBuf[1]) & 0xff)} ${toHex(HitBuf[2] & 0xff)}`);
                 pTbl = DataParser.getROMAddressFromAddrOf3ByteWPCAddrPage(HitBuf[0]);
                 if (pTbl != -1) {
                     logStr("Table Found!");
                     return pTbl;
                 }
-                logStr(`Error deriving table addr from hit, HitType ${((Ptr - 1)) & 0xFF}, HitBytes ${(HitBuf[0]) & 0xFF} ${((HitBuf[1])) & 0xFF} ${((HitBuf[2])) & 0xFF}. Will keep looking. May need to debug by opening window while pressing <shift>`);
+                logStr(`Error deriving table addr from hit, HitType ${(Ptr - 1) & 0xff}, HitBytes ${HitBuf[0] & 0xff} ${HitBuf[1] & 0xff} ${HitBuf[2] & 0xff}. Will keep looking. May need to debug by opening window while pressing <shift>`);
                 break;
             case HitTypes.None:
                 return 0;
@@ -530,7 +537,7 @@ export class DataParser {
             }
             else {
                 VariableSizedImageData.maxTableIndex++;
-                const result = DataParser.getLastImageIndex(-1, (VariableSizedImageData.maxTableIndex - 1));
+                const result = DataParser.getLastImageIndex(-1, VariableSizedImageData.maxTableIndex - 1);
                 const ImageIndex = result[0];
                 ROM.vSImageTableMap.push(result[1]);
                 if (ImageIndex == -1) {
@@ -548,7 +555,7 @@ export class DataParser {
             return -1;
         }
         VariableSizedImageData.minTableIndex = 0;
-        VariableSizedImageData.maxTableIndex = (TableCount - 1);
+        VariableSizedImageData.maxTableIndex = TableCount - 1;
         VariableSizedImageData.maxImageIndex = DataParser.getLastImageIndex(VariableSizedImageData.maxImageIndex, VariableSizedImageData.maxTableIndex)[0];
         if (VariableSizedImageData.maxImageIndex == -1) {
             logStr(`Error looking up max image index for last table index ${VariableSizedImageData.maxTableIndex}`);
@@ -574,8 +581,8 @@ export class DataParser {
         if (Addr >= ROM.size) {
             return [-1, -1];
         }
-        Ptr = (Addr);
-        while ((ROM.byteAtAddr(Ptr++) & 0xFF) != 0x00)
+        Ptr = Addr;
+        while ((ROM.byteAtAddr(Ptr++) & 0xff) != 0x00)
             ;
         TableHeight = ROM.byteAtAddr(Ptr++);
         TableSpacing = ROM.byteAtAddr(Ptr++);

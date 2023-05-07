@@ -53,7 +53,7 @@ export class FullFrameImage {
         let mergedImage = new Uint8Array(imageSize);
         let i;
         for (i = 0; i < imageSize; i++) {
-            if (mask[i] == 0xFF) {
+            if (mask[i] == 0xff) {
                 mergedImage[i] = img1[i];
             }
             else {
@@ -79,17 +79,17 @@ export class FullFrameImage {
                     const xorBit = (xor[i] >> j) & 0x01;
                     const flagBit = (flags[i] >> j) & 0x01;
                     const img1Bit = (img1Byte >> j) & 0x01;
-                    if ((flagBit)) {
+                    if (flagBit) {
                         if (xorBit) {
-                            img2Byte |= ((~img1Bit & 0x01) << j);
+                            img2Byte |= (~img1Bit & 0x01) << j;
                         }
                         else {
-                            img2Byte |= (img1Bit << j);
+                            img2Byte |= img1Bit << j;
                         }
                     }
                 }
             }
-            if (mask[i] == 0xFF) {
+            if (mask[i] == 0xff) {
                 mergedImage[i] = img1Byte;
             }
             else {
@@ -100,13 +100,20 @@ export class FullFrameImage {
     }
     static _getCurrent() {
         DmdDecoder.decodeFullFrameGraphic(FullFrameImageData.CurrentImageIndex);
-        FullFrameImage.currentPlane.image = FullFrameImageData.Planes.Plane0.Plane_Data;
-        FullFrameImage.currentPlane.mask = FullFrameImageData.Planes.Plane0.Plane_Skipped;
-        FullFrameImage.currentPlane.xor = FullFrameImageData.Planes.Plane0.Plane_XorBits;
-        FullFrameImage.currentPlane.flags = FullFrameImageData.Planes.Plane0.Plane_XorFlags;
-        FullFrameImage.currentPlane.type = FullFrameImageData.Planes.Plane0.Plane_Encoding;
-        FullFrameImage.currentPlane.address = FullFrameImageData.Planes.Plane0.Address;
-        FullFrameImage.currentPlane.tableAddress = FullFrameImageData.Planes.Plane0.Table_Address;
+        FullFrameImage.currentPlane.image =
+            FullFrameImageData.Planes.Plane0.Plane_Data;
+        FullFrameImage.currentPlane.mask =
+            FullFrameImageData.Planes.Plane0.Plane_Skipped;
+        FullFrameImage.currentPlane.xor =
+            FullFrameImageData.Planes.Plane0.Plane_XorBits;
+        FullFrameImage.currentPlane.flags =
+            FullFrameImageData.Planes.Plane0.Plane_XorFlags;
+        FullFrameImage.currentPlane.type =
+            FullFrameImageData.Planes.Plane0.Plane_Encoding;
+        FullFrameImage.currentPlane.address =
+            FullFrameImageData.Planes.Plane0.Address;
+        FullFrameImage.currentPlane.tableAddress =
+            FullFrameImageData.Planes.Plane0.Table_Address;
     }
 }
 FullFrameImage.currentPlane = {
@@ -120,5 +127,5 @@ FullFrameImage.currentPlane = {
     yOffset: 0,
     type: 255,
     address: 0,
-    tableAddress: 0
+    tableAddress: 0,
 };

@@ -189,7 +189,7 @@ export class DataParser {
               HitPagePtr = RomAddr + 2; // in some cases when addr is in non-banked ROM this byte will get ignored
               WpcAddr =
                 ((ROM.byteAtAddr(HitTablePtr & 0xff) << 8) +
-                  (ROM.byteAtAddr(HitTablePtr + 1) & 0xff)) &
+                  (ROM.byteAtAddr(HitTablePtr + 1)) & 0xff) &
                 0xffff;
               if (
                 WpcAddr >= WPC.BaseCodeAddrNonpagedRom &&
