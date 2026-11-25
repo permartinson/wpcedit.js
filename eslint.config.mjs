@@ -14,6 +14,7 @@ export default tseslint.config(
       "no-case-declarations": "warn",
       "no-fallthrough": "warn",
       "no-empty": "warn",
+      "no-useless-assignment": "warn",
       "@typescript-eslint/no-unused-vars": "warn",
       "@typescript-eslint/no-namespace": "warn",
 
