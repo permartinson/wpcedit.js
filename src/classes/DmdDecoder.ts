@@ -740,16 +740,16 @@ export class DmdDecoder {
   }
 
   private static decodePlaneInit() {
-    let Plane = new Uint8Array(WPC.DmdPageBytes);
     //
     // We'll clear out the page of data bytes here..
+    // Each field gets its own buffer, like memset() on the C struct.
     //
     let pPlane: Defines.DMDPlane = {
       Plane_Size: 0,
-      Plane_Data: Plane,
-      Plane_Skipped: Plane,
-      Plane_XorFlags: Plane,
-      Plane_XorBits: Plane,
+      Plane_Data: new Uint8Array(WPC.DmdPageBytes),
+      Plane_Skipped: new Uint8Array(WPC.DmdPageBytes),
+      Plane_XorFlags: new Uint8Array(WPC.DmdPageBytes),
+      Plane_XorBits: new Uint8Array(WPC.DmdPageBytes),
       Plane_Status: PlaneStatuses.Valid, // Assume the image will be valid unless otherwise determined
       Plane_Encoding: 255,
       Address: 0,

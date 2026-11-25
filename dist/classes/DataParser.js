@@ -58,12 +58,12 @@ export class DataParser {
                             HitTablePtr = RomAddr;
                             HitPagePtr = RomAddr + 2;
                             WpcAddr =
-                                ((ROM.byteAtAddr(HitTablePtr & 0xff) << 8) +
-                                    (ROM.byteAtAddr(HitTablePtr + 1)) & 0xff) &
+                                (((ROM.byteAtAddr(HitTablePtr) & 0xff) << 8) +
+                                    (ROM.byteAtAddr(HitTablePtr + 1) & 0xff)) &
                                     0xffff;
                             if (WpcAddr >= WPC.BaseCodeAddrNonpagedRom &&
                                 WpcAddr < WPC.BaseCodeAddrNonpagedRom + WPC.NonpagedLength &&
-                                ROM.byteAtAddr(HitPagePtr & 0xff) != WPC.NonpagedBankIndicator) {
+                                (ROM.byteAtAddr(HitPagePtr) & 0xff) != WPC.NonpagedBankIndicator) {
                                 RomAddr += 2;
                             }
                             else {
@@ -84,23 +84,23 @@ export class DataParser {
                             if (dataType != DataTypes.AniData) {
                                 return 0;
                             }
-                            HitTablePtr = ROM.byteAtAddr(RomAddr);
-                            HitPagePtr = ROM.byteAtAddr(RomAddr + 2);
+                            HitTablePtr = RomAddr;
+                            HitPagePtr = RomAddr + 2;
                             WpcAddr =
-                                ((ROM.byteAtAddr(HitTablePtr & 0xff) << 8) +
+                                (((ROM.byteAtAddr(HitTablePtr) & 0xff) << 8) +
                                     (ROM.byteAtAddr(HitTablePtr + 1) & 0xff)) &
                                     0xffff;
                             if (WpcAddr >= WPC.BaseCodeAddrNonpagedRom &&
                                 WpcAddr < WPC.BaseCodeAddrNonpagedRom + WPC.NonpagedLength &&
-                                ROM.byteAtAddr(HitPagePtr & 0xff) != WPC.NonpagedBankIndicator) {
+                                (ROM.byteAtAddr(HitPagePtr) & 0xff) != WPC.NonpagedBankIndicator) {
                                 RomAddr += 2;
                             }
                             else {
                                 RomAddr += 3;
                             }
                             logStr(`Address in ROM of Animation Table Pointer ${toHex(RomAddr)}`);
-                            HitTablePtr = ROM.byteAtAddr(RomAddr);
-                            HitPagePtr = ROM.byteAtAddr(RomAddr + 2);
+                            HitTablePtr = RomAddr;
+                            HitPagePtr = RomAddr + 2;
                             VariableSizedImageData.TableAddress = this.processHitType(HitTypes.Addr, HitTablePtr, HitPagePtr, Ptr);
                             if (VariableSizedImageData.TableAddress == -1) {
                                 logStr(`Error from processHitType while trying to process Animation Table Pointer: ${HitTablePtr & 0xff} ${(HitTablePtr + 1) & 0xff}`);
@@ -252,10 +252,8 @@ export class DataParser {
         if (VariableSizedImageData.TableAddress >= ROM.size) {
             return [-1, -1];
         }
-        if (VariableSizedImageData.CurrentTableIndex <
-            VariableSizedImageData.minTableIndex ||
-            VariableSizedImageData.CurrentTableIndex >
-                VariableSizedImageData.maxTableIndex) {
+        if (TableIndex < VariableSizedImageData.minTableIndex ||
+            TableIndex > VariableSizedImageData.maxTableIndex) {
             return [-1, -1];
         }
         romAddr =
@@ -562,7 +560,7 @@ export class DataParser {
             return -1;
         }
         VariableSizedImageData.minImageIndex = DataParser.getFirstImageIndex(VariableSizedImageData.minTableIndex);
-        if (VariableSizedImageData.minTableIndex == -1) {
+        if (VariableSizedImageData.minImageIndex == -1) {
             logStr(`Error looking up min image index for first table index ${VariableSizedImageData.maxTableIndex})`);
             return -1;
         }

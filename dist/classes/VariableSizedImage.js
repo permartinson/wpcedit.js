@@ -93,7 +93,6 @@ export class VariableSizedImage {
         return fullFrameImage;
     }
     static _getCurrent() {
-        DmdDecoder.decodeVariableSizedImageIndexToPlane(VariableSizedImageData.CurrentTableIndex, VariableSizedImageData.CurrentImageIndex);
         DmdDecoder.decodeVariableSizedImageData();
         VariableSizedImage.currentPlane.image =
             VariableSizedImageData.Planes.Plane0.Plane_Data;

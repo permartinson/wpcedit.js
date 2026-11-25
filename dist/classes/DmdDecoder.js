@@ -415,13 +415,12 @@ export class DmdDecoder {
         return DMDPlane;
     }
     static decodePlaneInit() {
-        let Plane = new Uint8Array(WPC.DmdPageBytes);
         let pPlane = {
             Plane_Size: 0,
-            Plane_Data: Plane,
-            Plane_Skipped: Plane,
-            Plane_XorFlags: Plane,
-            Plane_XorBits: Plane,
+            Plane_Data: new Uint8Array(WPC.DmdPageBytes),
+            Plane_Skipped: new Uint8Array(WPC.DmdPageBytes),
+            Plane_XorFlags: new Uint8Array(WPC.DmdPageBytes),
+            Plane_XorBits: new Uint8Array(WPC.DmdPageBytes),
             Plane_Status: PlaneStatuses.Valid,
             Plane_Encoding: 255,
             Address: 0,
