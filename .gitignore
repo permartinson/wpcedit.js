@@ -1,2 +1,4 @@
 node_modules/
 roms/
+dist/src/
+*.tsbuildinfo

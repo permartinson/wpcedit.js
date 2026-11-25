@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-25
+
 ### Added
 - Facit tests (`npm test`) that decode every font glyph and full frame image in a set of ROM files and compare them with saved fingerprints in `tests/facit/`. ROM files are read from `./roms` or the folder in `WPCEDIT_ROMS` and are never committed.
 - Type declarations (`.d.ts`) are now included in the package.
@@ -35,4 +37,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - A misplaced parenthesis that caused a bug when parsing a few ROMs.
 
-[Unreleased]: https://github.com/permartinson/wpcedit.js/compare/2795709...HEAD
+[Unreleased]: https://github.com/permartinson/wpcedit.js/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/permartinson/wpcedit.js/compare/2795709...v0.5.0
