@@ -101,6 +101,22 @@ A plane is an object that contains an image, as well as some additional data:
 I would like to include an example implementation of a rendering, but for now you may check out the the code in WPC Edit vue app:
 
 
+## Development
+
+```
+npm install
+npm run build       # compile src/ to dist/
+npm run typecheck
+npm run lint
+npm test            # facit tests, see below
+```
+
+### Facit tests
+
+The tests decode every font glyph and full frame image in a set of ROM files and compare fingerprints of the results with the saved files in `tests/facit/`. This makes it safe to refactor: any change in the decoded output shows up as a failing test.
+
+ROM files are copyrighted and are not part of the repository. Put your ROM files in a `roms/` folder in the project root (it is ignored by git), or set `WPCEDIT_ROMS` to another folder. ROMs that are not present are simply skipped. See `tests/facit/README.md` for the ROMs the facit was made from.
+
 ## License
 
 WPCEdit.js is released as public domain, just like the original WPC Edit by Garrett Lee.
