@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-26
+
 ### Changed
 - New internal helpers `RomReader`, `PlaneWriter` and `BitReader` that keep their own read and write positions, like the pointers in the original C++ code. Not used yet.
 - Image encoding 0x00 reads through `RomReader`. Output unchanged.
@@ -56,5 +58,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - A misplaced parenthesis that caused a bug when parsing a few ROMs.
 
-[Unreleased]: https://github.com/permartinson/wpcedit.js/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/permartinson/wpcedit.js/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/permartinson/wpcedit.js/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/permartinson/wpcedit.js/compare/2795709...v0.5.0
