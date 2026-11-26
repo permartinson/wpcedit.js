@@ -1,15 +1,15 @@
 export class Settings {
-    private static instance: Settings;
+  private static instance: Settings;
 
-    public static VerboseMode: boolean = false;
+  public static verboseMode = false;
 
-    private constructor() {
-}
-    public static init() {
-        if(Settings.instance) {
-            return this.instance;
-        }
-        this.instance = new Settings();
-        return this.instance;
+  private constructor() {}
+
+  public static init() {
+    if (Settings.instance) {
+      return this.instance;
     }
-};
+    this.instance = new Settings();
+    return this.instance;
+  }
+}

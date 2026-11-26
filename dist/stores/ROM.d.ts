@@ -9,7 +9,7 @@ export declare class ROM {
     static vSImageTableMap: number[][];
     private constructor();
     static init(data: Uint8Array): ROM;
-    static byteAtAddr(Addr: number): number;
+    static byteAtAddr(addr: number): number;
     static setRom(data: Uint8Array): {
         error: boolean;
         msg: string;

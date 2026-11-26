@@ -67,8 +67,8 @@ function describeRom(data: Uint8Array) {
     status,
     size: hex(ROM.size),
     basePage: hex(ROM.basePageIndex),
-    fontTableAddress: hex(VariableSizedImageData.TableAddress),
-    graphicsTableAddress: hex(FullFrameImageData.TableAddress),
+    fontTableAddress: hex(VariableSizedImageData.tableAddress),
+    graphicsTableAddress: hex(FullFrameImageData.tableAddress),
     checksum: {
       valid: WPCEdit.checksum.isValid,
       stored: hex(WPCEdit.checksum.stored),

@@ -25,6 +25,8 @@ export default tseslint.config(
         { selector: "default", format: ["camelCase"], leadingUnderscore: "allow" },
         { selector: "import", format: ["camelCase", "PascalCase"] },
         { selector: "variable", modifiers: ["const", "global"], format: ["camelCase", "UPPER_CASE"] },
+        // Constants may also be PascalCase (plan rule 5), e.g. WPC.DmdRows, HitTypes.AddrAddr
+        { selector: "variable", modifiers: ["const", "exported"], format: ["camelCase", "UPPER_CASE", "PascalCase"] },
         { selector: "typeLike", format: ["PascalCase"] },
         { selector: "enumMember", format: ["PascalCase"] },
         { selector: "objectLiteralProperty", modifiers: ["requiresQuotes"], format: null },

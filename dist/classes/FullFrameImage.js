@@ -34,17 +34,17 @@ export class FullFrameImage {
         return index;
     }
     set index(index) {
-        FullFrameImageData.CurrentImageIndex = Math.max(0, index);
+        FullFrameImageData.currentImageIndex = Math.max(0, index);
     }
     get index() {
-        return FullFrameImageData.CurrentImageIndex;
+        return FullFrameImageData.currentImageIndex;
     }
     get plane() {
         FullFrameImage._getCurrent();
         return FullFrameImage.currentPlane;
     }
     getPlaneAt(index) {
-        FullFrameImageData.CurrentImageIndex = Math.max(0, index);
+        FullFrameImageData.currentImageIndex = Math.max(0, index);
         FullFrameImage._getCurrent();
         return FullFrameImage.currentPlane;
     }
@@ -99,21 +99,21 @@ export class FullFrameImage {
         return mergedImage;
     }
     static _getCurrent() {
-        DmdDecoder.decodeFullFrameGraphic(FullFrameImageData.CurrentImageIndex);
+        DmdDecoder.decodeFullFrameGraphic(FullFrameImageData.currentImageIndex);
         FullFrameImage.currentPlane.image =
-            FullFrameImageData.Planes.Plane0.Plane_Data;
+            FullFrameImageData.planes.plane0.data;
         FullFrameImage.currentPlane.mask =
-            FullFrameImageData.Planes.Plane0.Plane_Skipped;
+            FullFrameImageData.planes.plane0.skipped;
         FullFrameImage.currentPlane.xor =
-            FullFrameImageData.Planes.Plane0.Plane_XorBits;
+            FullFrameImageData.planes.plane0.xorBits;
         FullFrameImage.currentPlane.flags =
-            FullFrameImageData.Planes.Plane0.Plane_XorFlags;
+            FullFrameImageData.planes.plane0.xorFlags;
         FullFrameImage.currentPlane.type =
-            FullFrameImageData.Planes.Plane0.Plane_Encoding;
+            FullFrameImageData.planes.plane0.encoding;
         FullFrameImage.currentPlane.address =
-            FullFrameImageData.Planes.Plane0.Address;
+            FullFrameImageData.planes.plane0.address;
         FullFrameImage.currentPlane.tableAddress =
-            FullFrameImageData.Planes.Plane0.Table_Address;
+            FullFrameImageData.planes.plane0.tableAddress;
     }
 }
 FullFrameImage.currentPlane = {

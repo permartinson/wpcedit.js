@@ -1,6 +1,6 @@
 export declare class Settings {
     private static instance;
-    static VerboseMode: boolean;
+    static verboseMode: boolean;
     private constructor();
     static init(): Settings;
 }

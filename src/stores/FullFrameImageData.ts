@@ -1,36 +1,36 @@
-import * as Defines from "../resources/Defines";
+import * as Defines from "../resources/Defines.js";
 import { WPC } from "../resources/Constants.js";
 
 export class FullFrameImageData {
-    public static TableAddress = 0;
-    public static CurrentImageIndex = 0;
-    public static Planes: Defines.DMDPlanes;
-    private static instance: FullFrameImageData;
+  public static tableAddress = 0;
+  public static currentImageIndex = 0;
+  public static planes: Defines.DmdPlanes;
+  private static instance: FullFrameImageData;
 
-    private constructor() {
+  private constructor() {
     const plane = new Uint8Array(WPC.DmdPageBytes);
-    const DMDplane: Defines.DMDPlane = {
-      Plane_Status: 0,
-      Plane_Size: 0,
-      Plane_Data: plane,
-      Plane_Skipped: plane,
-      Plane_XorFlags: plane,
-      Plane_XorBits: plane,
-      Plane_Encoding: 255,
-      Address: 0,
-      Table_Address: 0
+    const dmdPlane: Defines.DmdPlane = {
+      status: 0,
+      size: 0,
+      data: plane,
+      skipped: plane,
+      xorFlags: plane,
+      xorBits: plane,
+      encoding: 255,
+      address: 0,
+      tableAddress: 0,
     };
-    const DMDplanes: Defines.DMDPlanes = {
-      Plane0: DMDplane,
-      Plane1: DMDplane,
+    FullFrameImageData.planes = {
+      plane0: dmdPlane,
+      plane1: dmdPlane,
     };
-    FullFrameImageData.Planes = DMDplanes;
-}
-    public static init() {
-        if(FullFrameImageData.instance) {
-            return this.instance;
-        }
-        this.instance = new FullFrameImageData();
-        return this.instance;
+  }
+
+  public static init() {
+    if (FullFrameImageData.instance) {
+      return this.instance;
     }
-};
+    this.instance = new FullFrameImageData();
+    return this.instance;
+  }
+}

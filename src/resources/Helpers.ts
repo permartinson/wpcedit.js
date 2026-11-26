@@ -5,7 +5,7 @@ export function toHex(decimal:number) {
 }
 
 export function logStr(string:string) {
-    if(Settings.VerboseMode) {
+    if(Settings.verboseMode) {
         console.log(string);
     }
 }

@@ -69,12 +69,38 @@ import { ROM } from "../stores/ROM.js";
 //
 /////////////////////////////////////////////////////////////////////////////
 
+
+/** A WPC address (0x4000-0xFFFF) and the ROM page it is in (0xFF for non-banked ROM). */
+export type WpcPointer = {
+  addr: number;
+  page: number;
+};
+
+/** Reads a 16-bit big-endian WPC address at a ROM position. */
+function wordAt(pos: number) {
+  return (((ROM.byteAtAddr(pos) & 0xff) << 8) | (ROM.byteAtAddr(pos + 1) & 0xff)) & 0xffff;
+}
+
+function isNonpagedAddr(addr: number) {
+  return (
+    addr >= WPC.BaseCodeAddrNonpagedRom &&
+    addr < WPC.BaseCodeAddrNonpagedRom + WPC.NonpagedLength
+  );
+}
+
+function isPagedAddr(addr: number) {
+  return (
+    addr >= WPC.BaseCodeAddrPagedRom &&
+    addr < WPC.BaseCodeAddrPagedRom + WPC.PageLength
+  );
+}
+
 export class DataParser {
   private static instance: DataParser;
 
   private constructor() {}
 
-  public static init(romData: Uint8Array) {
+  public static init() {
     if (DataParser.instance) {
       return this.instance;
     }
@@ -107,912 +133,755 @@ export class DataParser {
     // Following that appears to always be the Graphics table.
     // Following that appears to be the Animation table on some ROMs.
     //
-    let Page: number;
-    let PageByteIdx: number;
-    let HitTablePtr: number;
-    let HitPagePtr: number;
-    let RomAddr: number;
-    let WpcAddr: number;
-    let Ptr = 0;
+    let ptr = 0;
 
     logStr(`Searching ROM for Master Animation Table Address`);
 
-    for (Page = 0; Page < ROM.totalPages; Page++) {
-      for (PageByteIdx = 0; PageByteIdx < WPC.PageLength; PageByteIdx++) {
-        switch (ROM.byteAtAddr(Ptr++) & 0xff) {
-          case 0xbe:
-            //
-            //             -1 +0 +1  2  3  4  5  6  7  8  9 10 11 12 13 14
-            // Search for: BE xx xx 3A 58 3A D6 yy 34 04 F6 zz zz BD ww ww, WPC Table address address is xxxx in non-banked ROM
-            // Search for: BE xx xx 3A 58 3A D6 yy 34 04 BD zz zz BD ww ww, WPC Table address address is xxxx in non-banked ROM
-            // Search for: BE xx xx 3A 58 3A D6 yy 34 04 BD zz zz F6 ww ww, WPC Table address address is xxxx in non-banked ROM
-            // Search for: BE xx xx 3A 58 3A D6 yy 34 04 F6 zz zz F6 ww ww, WPC Table address address is xxxx in non-banked ROM
-            if (PageByteIdx >= WPC.PageLength - 16) {
-              // don't try to read out of bounds, going to read up to 16 bytes after Ptr
-              break;
-              //return -1;
-            }
-            if (
-              (ROM.byteAtAddr(Ptr + 2) & 0xff) == 0x3a &&
-              (ROM.byteAtAddr(Ptr + 3) & 0xff) == 0x58 &&
-              (ROM.byteAtAddr(Ptr + 4) & 0xff) == 0x3a &&
-              (ROM.byteAtAddr(Ptr + 5) & 0xff) == 0xd6 &&
-              (ROM.byteAtAddr(Ptr + 7) & 0xff) == 0x34 &&
-              (ROM.byteAtAddr(Ptr + 8) & 0xff) == 0x04 &&
-              ((ROM.byteAtAddr(Ptr + 9) & 0xff) == 0xf6 ||
-                (ROM.byteAtAddr(Ptr + 9) & 0xff) == 0xbd) &&
-              ((ROM.byteAtAddr(Ptr + 12) & 0xff) == 0xbd ||
-                (ROM.byteAtAddr(Ptr + 12) & 0xff) == 0xf6)
-            ) {
-              //
-              HitTablePtr = Ptr;
-              HitPagePtr = Ptr + 2; // not used by HitTypes.AddrAddr, but setting to a known value here
-              RomAddr =
-                DataParser.getROMAddressFromAddrOf3ByteWPCAddrPage(HitTablePtr);
-              if (RomAddr == -1) {
-                logStr(
-                  `Error from getROMAddressFromAddrOf3ByteWPCAddrPage(), Passed it WPC Font Table Pointer opcode: ${toHex(
-                    HitTablePtr & 0xff
-                  )} ${toHex((HitTablePtr + 1) & 0xff)}`
-                );
-                return -1;
-              }
-
-              //
-              logStr(`Address in ROM of Font Table Pointer ${toHex(RomAddr)}`);
-
-              if (dataType == DataTypes.FontData) {
-                VariableSizedImageData.TableAddress = DataParser.processHitType(
-                  HitTypes.AddrAddr,
-                  HitTablePtr,
-                  HitPagePtr,
-                  Ptr
-                );
-                if (VariableSizedImageData.TableAddress == -1) {
-                  logStr(
-                    `Error from ProcessHitType while trying to process Font Table Pointer opcode: ${toHex(
-                      HitTablePtr & 0xff
-                    )} ${toHex((HitTablePtr + 1) & 0xff)}`
-                  );
-                  break;
-                }
-                //
-                logStr(
-                  `Found Address in ROM of Font Table ${toHex(
-                    VariableSizedImageData.TableAddress
-                  )}`
-                );
-              }
-
-              // Now re-load Font table Addr Pointer and advance to Graphic Table....
-              HitTablePtr = RomAddr;
-              HitPagePtr = RomAddr + 2; // in some cases when addr is in non-banked ROM this byte will get ignored
-              WpcAddr =
-                (((ROM.byteAtAddr(HitTablePtr) & 0xff) << 8) +
-                  (ROM.byteAtAddr(HitTablePtr + 1) & 0xff)) &
-                0xffff;
-              if (
-                WpcAddr >= WPC.BaseCodeAddrNonpagedRom &&
-                WpcAddr < WPC.BaseCodeAddrNonpagedRom + WPC.NonpagedLength &&
-                (ROM.byteAtAddr(HitPagePtr) & 0xff) != WPC.NonpagedBankIndicator
-              ) {
-                RomAddr += 2; // PagePtr will end up pointing to invalid page but it will get fixed up to 0xff
-              } else {
-                RomAddr += 3;
-              }
-
-              //
-              logStr(
-                `Address in ROM of Graphics Table Pointer ${toHex(RomAddr)}`
-              );
-
-              //
-              HitTablePtr = RomAddr;
-              HitPagePtr = RomAddr + 2; // in some cases when addr is in non-banked ROM this byte will get ignored
-
-              //
-              FullFrameImageData.TableAddress = this.processHitType(
-                HitTypes.Addr,
-                HitTablePtr,
-                HitPagePtr,
-                Ptr
-              );
-              if (FullFrameImageData.TableAddress == -1) {
-                logStr(
-                  `Error from processHitType while trying to process Graphic Table Pointer: ${toHex(
-                    HitTablePtr & 0xff
-                  )} ${toHex((HitTablePtr + 1) & 0xff)}`
-                );
-                if (dataType == DataTypes.FontData) {
-                  return 0; // just return, we found font addr but couldn't find graphic table, no big deal
-                }
-                return -1; // looking for graphics or animation table, some problem happened, return error
-              }
-
-              //
-              logStr(
-                `Found Address in ROM of Graphics Table ${toHex(
-                  FullFrameImageData.TableAddress
-                )}`
-              );
-
-              if (dataType != DataTypes.AniData) {
-                return 0; // found graphics table addr, no need to loop up animation table addr
-              }
-
-              // Now re-load Graphics table Addr Pointer and advance to Animation Table....
-              HitTablePtr = RomAddr;
-              HitPagePtr = RomAddr + 2; // in some cases when addr is in non-banked ROM this byte will get ignored
-              WpcAddr =
-                (((ROM.byteAtAddr(HitTablePtr) & 0xff) << 8) +
-                  (ROM.byteAtAddr(HitTablePtr + 1) & 0xff)) &
-                0xffff;
-              if (
-                WpcAddr >= WPC.BaseCodeAddrNonpagedRom &&
-                WpcAddr < WPC.BaseCodeAddrNonpagedRom + WPC.NonpagedLength &&
-                (ROM.byteAtAddr(HitPagePtr) & 0xff) != WPC.NonpagedBankIndicator
-              ) {
-                RomAddr += 2; // PagePtr will end up pointing to invalid page but it will get fixed up to 0xff
-              } else {
-                RomAddr += 3;
-              }
-
-              logStr(
-                `Address in ROM of Animation Table Pointer ${toHex(RomAddr)}`
-              );
-
-              //
-              HitTablePtr = RomAddr;
-              HitPagePtr = RomAddr + 2; // in some cases when addr is in non-banked ROM this byte will get ignored
-
-              //
-              VariableSizedImageData.TableAddress = this.processHitType(
-                HitTypes.Addr,
-                HitTablePtr,
-                HitPagePtr,
-                Ptr
-              );
-              if (VariableSizedImageData.TableAddress == -1) {
-                logStr(
-                  `Error from processHitType while trying to process Animation Table Pointer: ${
-                    HitTablePtr & 0xff
-                  } ${(HitTablePtr + 1) & 0xff}`
-                );
-                return -1; // looking for animation table, some problem happened, return error
-              }
-              //
-              logStr(
-                `Found Address in ROM of Animation Table ${toHex(
-                  VariableSizedImageData.TableAddress
-                )}`
-              );
-
-              ROM.startPtr = Ptr;
-
-              return 0;
-            }
-            break;
-          default:
-            break;
+    for (let page = 0; page < ROM.totalPages; page++) {
+      for (let pageByteIdx = 0; pageByteIdx < WPC.PageLength; pageByteIdx++) {
+        if ((ROM.byteAtAddr(ptr++) & 0xff) != 0xbe) {
+          continue;
         }
+        //
+        //             -1 +0 +1  2  3  4  5  6  7  8  9 10 11 12 13 14
+        // Search for: BE xx xx 3A 58 3A D6 yy 34 04 F6 zz zz BD ww ww, WPC Table address address is xxxx in non-banked ROM
+        // Search for: BE xx xx 3A 58 3A D6 yy 34 04 BD zz zz BD ww ww, WPC Table address address is xxxx in non-banked ROM
+        // Search for: BE xx xx 3A 58 3A D6 yy 34 04 BD zz zz F6 ww ww, WPC Table address address is xxxx in non-banked ROM
+        // Search for: BE xx xx 3A 58 3A D6 yy 34 04 F6 zz zz F6 ww ww, WPC Table address address is xxxx in non-banked ROM
+        if (pageByteIdx >= WPC.PageLength - 16) {
+          // don't try to read out of bounds, going to read up to 16 bytes after ptr
+          continue;
+        }
+        if (
+          !(
+            (ROM.byteAtAddr(ptr + 2) & 0xff) == 0x3a &&
+            (ROM.byteAtAddr(ptr + 3) & 0xff) == 0x58 &&
+            (ROM.byteAtAddr(ptr + 4) & 0xff) == 0x3a &&
+            (ROM.byteAtAddr(ptr + 5) & 0xff) == 0xd6 &&
+            (ROM.byteAtAddr(ptr + 7) & 0xff) == 0x34 &&
+            (ROM.byteAtAddr(ptr + 8) & 0xff) == 0x04 &&
+            ((ROM.byteAtAddr(ptr + 9) & 0xff) == 0xf6 ||
+              (ROM.byteAtAddr(ptr + 9) & 0xff) == 0xbd) &&
+            ((ROM.byteAtAddr(ptr + 12) & 0xff) == 0xbd ||
+              (ROM.byteAtAddr(ptr + 12) & 0xff) == 0xf6)
+          )
+        ) {
+          continue;
+        }
+
+        //
+        let hitTablePtr = ptr;
+        let hitPagePtr = ptr + 2; // not used by HitTypes.AddrAddr, but setting to a known value here
+        let romAddr = DataParser.getROMAddressFromAddrOf3ByteWPCAddrPage(hitTablePtr);
+        if (romAddr === null) {
+          logStr(
+            `Error from getROMAddressFromAddrOf3ByteWPCAddrPage(), Passed it WPC Font Table Pointer opcode: ${toHex(
+              ROM.byteAtAddr(hitTablePtr)
+            )} ${toHex(ROM.byteAtAddr(hitTablePtr + 1))}`
+          );
+          return -1;
+        }
+
+        //
+        logStr(`Address in ROM of Font Table Pointer ${toHex(romAddr)}`);
+
+        if (dataType == DataTypes.FontData) {
+          const fontTable = DataParser.processHitType(
+            HitTypes.AddrAddr,
+            hitTablePtr,
+            hitPagePtr,
+            ptr
+          );
+          VariableSizedImageData.tableAddress = fontTable ?? -1;
+          if (fontTable === null) {
+            logStr(
+              `Error from ProcessHitType while trying to process Font Table Pointer opcode: ${toHex(
+                ROM.byteAtAddr(hitTablePtr)
+              )} ${toHex(ROM.byteAtAddr(hitTablePtr + 1))}`
+            );
+            continue;
+          }
+          //
+          logStr(
+            `Found Address in ROM of Font Table ${toHex(
+              VariableSizedImageData.tableAddress
+            )}`
+          );
+        }
+
+        // Now re-load Font table Addr Pointer and advance to Graphic Table....
+        romAddr = DataParser.skipPointer(romAddr);
+
+        //
+        logStr(`Address in ROM of Graphics Table Pointer ${toHex(romAddr)}`);
+
+        //
+        hitTablePtr = romAddr;
+        hitPagePtr = romAddr + 2; // in some cases when addr is in non-banked ROM this byte will get ignored
+
+        //
+        const graphicsTable = this.processHitType(
+          HitTypes.Addr,
+          hitTablePtr,
+          hitPagePtr,
+          ptr
+        );
+        FullFrameImageData.tableAddress = graphicsTable ?? -1;
+        if (graphicsTable === null) {
+          logStr(
+            `Error from processHitType while trying to process Graphic Table Pointer: ${toHex(
+              ROM.byteAtAddr(hitTablePtr)
+            )} ${toHex(ROM.byteAtAddr(hitTablePtr + 1))}`
+          );
+          if (dataType == DataTypes.FontData) {
+            return 0; // just return, we found font addr but couldn't find graphic table, no big deal
+          }
+          return -1; // looking for graphics or animation table, some problem happened, return error
+        }
+
+        //
+        logStr(
+          `Found Address in ROM of Graphics Table ${toHex(
+            FullFrameImageData.tableAddress
+          )}`
+        );
+
+        if (dataType != DataTypes.AniData) {
+          return 0; // found graphics table addr, no need to loop up animation table addr
+        }
+
+        // Now re-load Graphics table Addr Pointer and advance to Animation Table....
+        romAddr = DataParser.skipPointer(romAddr);
+
+        logStr(`Address in ROM of Animation Table Pointer ${toHex(romAddr)}`);
+
+        //
+        hitTablePtr = romAddr;
+        hitPagePtr = romAddr + 2; // in some cases when addr is in non-banked ROM this byte will get ignored
+
+        //
+        const animationTable = this.processHitType(
+          HitTypes.Addr,
+          hitTablePtr,
+          hitPagePtr,
+          ptr
+        );
+        VariableSizedImageData.tableAddress = animationTable ?? -1;
+        if (animationTable === null) {
+          logStr(
+            `Error from processHitType while trying to process Animation Table Pointer: ${toHex(
+              ROM.byteAtAddr(hitTablePtr)
+            )} ${toHex(ROM.byteAtAddr(hitTablePtr + 1))}`
+          );
+          return -1; // looking for animation table, some problem happened, return error
+        }
+        //
+        logStr(
+          `Found Address in ROM of Animation Table ${toHex(
+            VariableSizedImageData.tableAddress
+          )}`
+        );
+
+        ROM.startPtr = ptr;
+
+        return 0;
       }
     }
-    //}
-    //return -1;
   }
 
-  public static getFirstImageIndex(TableIndex: number) {
-    const imageIndex = this.getNextImageIndex(0, TableIndex);
+  /**
+   * Returns the ROM position after the table pointer at `pos`. The pointer
+   * takes 2 bytes when it points into non-banked ROM and is not followed by
+   * the 0xFF page byte, otherwise 3 bytes.
+   */
+  private static skipPointer(pos: number) {
+    const wpcAddr = wordAt(pos);
+    if (
+      isNonpagedAddr(wpcAddr) &&
+      (ROM.byteAtAddr(pos + 2) & 0xff) != WPC.NonpagedBankIndicator
+    ) {
+      return pos + 2; // PagePtr will end up pointing to invalid page but it will get fixed up to 0xff
+    }
+    return pos + 3;
+  }
+
+  public static getFirstImageIndex(tableIndex: number) {
+    const imageIndex = this.getNextImageIndex(0, tableIndex);
     if (imageIndex == -1) {
       return -1;
     }
-    VariableSizedImageData.CurrentImageIndex = imageIndex;
+    VariableSizedImageData.currentImageIndex = imageIndex;
     return imageIndex;
   }
 
-  public static getNextImageIndex(pImageIndex: number, TableIndex: number) {
-    let Addr: number;
-    let Ptr: number;
-    let ImageIndexMin: number;
-    let ImageIndexMax: number;
-
+  public static getNextImageIndex(imageIndex: number, tableIndex: number) {
     // Standard validations and sanity checks
-    if (!VariableSizedImageData.TableAddress) {
-      return -1;
-    }
-    if (VariableSizedImageData.TableAddress >= ROM.size) {
-      return -1;
-    }
-    if (
-      TableIndex < VariableSizedImageData.minTableIndex ||
-      TableIndex > VariableSizedImageData.maxTableIndex
-    ) {
+    if (!DataParser.isValidTableIndex(tableIndex)) {
       return -1;
     }
 
-    Addr = this.getROMAddressOfVariableSizedImageTable(TableIndex);
-    if (Addr == -1) {
+    const addr = this.getROMAddressOfVariableSizedImageTable(tableIndex);
+    if (addr === null) {
       return -1;
     }
 
     // Get pointer to area in ROM of actual table
-    Ptr = Addr;
-    while ((ROM.byteAtAddr(Ptr) & 0xff) != 0x00) {
-      ImageIndexMin = ROM.byteAtAddr(Ptr++) & 0xff;
-      ImageIndexMax = ROM.byteAtAddr(Ptr++) & 0xff;
+    let ptr = addr;
+    while ((ROM.byteAtAddr(ptr) & 0xff) != 0x00) {
+      const imageIndexMin = ROM.byteAtAddr(ptr++) & 0xff;
+      const imageIndexMax = ROM.byteAtAddr(ptr++) & 0xff;
       //
-      if (ImageIndexMin > ImageIndexMax) {
+      if (imageIndexMin > imageIndexMax) {
         return -1;
       }
-      if ((pImageIndex & 0xff) < (ImageIndexMin & 0xff)) {
-        return ImageIndexMin;
+      if ((imageIndex & 0xff) < (imageIndexMin & 0xff)) {
+        return imageIndexMin;
       }
-      if ((pImageIndex & 0xff) < (ImageIndexMax & 0xff)) {
-        return pImageIndex + 1;
+      if ((imageIndex & 0xff) < (imageIndexMax & 0xff)) {
+        return imageIndex + 1;
       }
     }
     return -1;
   }
 
+  /**
+   * Returns the last image index of a table, and a list of all its image
+   * indexes. If the table has no images, `last` is the `imageIndex` passed in.
+   */
   public static getLastImageIndex(
-    pImageIndex: number,
-    TableIndex: number
-  ): [number, number[]] {
-    let ImageIndex = 0;
-    let hit = 0;
-    let counter = 0;
-    let imageIndeces = [0];
-    imageIndeces.length = 0;
-    while (ImageIndex != -1) {
-      ImageIndex = this.getNextImageIndex(ImageIndex, TableIndex);
-      counter++;
-      if (ImageIndex != -1) {
-        pImageIndex = ImageIndex;
-        imageIndeces.push(ImageIndex);
-      }
-      hit = 1;
+    imageIndex: number,
+    tableIndex: number
+  ): { last: number; indices: number[] } {
+    const indices: number[] = [];
+    let next = this.getNextImageIndex(0, tableIndex);
+    while (next != -1) {
+      imageIndex = next;
+      indices.push(next);
+      next = this.getNextImageIndex(next, tableIndex);
     }
-
-    if (hit == 0) {
-      return [-1, imageIndeces];
-    }
-
-    return [pImageIndex, imageIndeces];
+    return { last: imageIndex, indices };
   }
 
-  public static getPrevImageIndex(pImageIndex: number, TableIndex: number) {
-    let Addr: number;
-    let Ptr: number;
-    let ImageIndexMin: number;
-    let ImageIndexMax: number;
-    let windUp: number;
-
+  public static getPrevImageIndex(imageIndex: number, tableIndex: number) {
     // Standard validations and sanity checks
-    if (!VariableSizedImageData.TableAddress) {
+    if (!DataParser.isValidTableIndex(tableIndex)) {
       return -1;
     }
-    if (VariableSizedImageData.TableAddress >= ROM.size) {
-      return -1;
-    }
-    if (
-      TableIndex < VariableSizedImageData.minTableIndex ||
-      TableIndex > VariableSizedImageData.maxTableIndex
-    ) {
-      return -1;
-    }
-    if (pImageIndex == null) {
+    if (imageIndex == null) {
       return -1;
     }
 
-    Addr = this.getROMAddressOfVariableSizedImageTable(TableIndex);
-    if (Addr == -1) {
+    const addr = this.getROMAddressOfVariableSizedImageTable(tableIndex);
+    if (addr === null) {
       return -1;
     }
 
     // Get pointer to area in ROM of actual table
-    Ptr = Addr;
+    let ptr = addr;
     // Need to start at last min/max pair and work down
-    windUp = 0;
-    while ((ROM.byteAtAddr(Ptr) & 0xff) != 0x00) {
-      Ptr += 2; // walk past the min/max pair
+    let windUp = 0;
+    while ((ROM.byteAtAddr(ptr) & 0xff) != 0x00) {
+      ptr += 2; // walk past the min/max pair
       windUp++;
     }
 
     // Now reverse back through the min/max pairs...
     while (windUp != 0) {
-      Ptr -= 2;
+      ptr -= 2;
       windUp--;
 
-      ImageIndexMin = ROM.byteAtAddr(Ptr) & 0xff;
-      ImageIndexMax = ROM.byteAtAddr(Ptr + 1) & 0xff;
+      const imageIndexMin = ROM.byteAtAddr(ptr) & 0xff;
+      const imageIndexMax = ROM.byteAtAddr(ptr + 1) & 0xff;
 
       //
-      if (ImageIndexMin > ImageIndexMax) {
+      if (imageIndexMin > imageIndexMax) {
         return -1;
       }
-      if ((pImageIndex & 0xff) > (ImageIndexMax & 0xff)) {
-        pImageIndex = ImageIndexMax;
-        return pImageIndex;
+      if ((imageIndex & 0xff) > (imageIndexMax & 0xff)) {
+        return imageIndexMax;
       }
-      if ((pImageIndex & 0xff) > (ImageIndexMin & 0xff)) {
-        pImageIndex = pImageIndex - 1;
-        return pImageIndex;
+      if ((imageIndex & 0xff) > (imageIndexMin & 0xff)) {
+        return imageIndex - 1;
       }
     }
     return -1;
   }
 
-  private static getROMAddressOfVariableSizedImageTable(TableIndex: number) {
-    const result = this.extractWPCAddrAndPageOfImageTable(TableIndex);
-    const Addr = result[0];
-    const Page = result[1];
-    if (Addr == -1) {
-      return -1;
+  /** The standard validations and sanity checks on the font table address and a table index. */
+  private static isValidTableIndex(tableIndex: number) {
+    if (!VariableSizedImageData.tableAddress) {
+      return false;
     }
-    const romAddr = this.getROMAddressFromWPCAddrAndPage(Addr, Page);
-    if (romAddr == -1) {
-      return -1;
-    }
-    return romAddr;
-  }
-
-  public static extractWPCAddrAndPageOfImageTable(TableIndex: number) {
-    let romAddr: number;
-    let Ptr: number;
-    let Addr: number;
-    let Page: number;
-
-    // Standard validations and sanity checks
-    if (!VariableSizedImageData.TableAddress) {
-      return [-1, -1];
-    }
-    if (VariableSizedImageData.TableAddress >= ROM.size) {
-      return [-1, -1];
+    if (VariableSizedImageData.tableAddress >= ROM.size) {
+      return false;
     }
     if (
-      TableIndex < VariableSizedImageData.minTableIndex ||
-      TableIndex > VariableSizedImageData.maxTableIndex
+      tableIndex < VariableSizedImageData.minTableIndex ||
+      tableIndex > VariableSizedImageData.maxTableIndex
     ) {
-      return [-1, -1];
+      return false;
+    }
+    return true;
+  }
+
+  private static getROMAddressOfVariableSizedImageTable(tableIndex: number) {
+    const pointer = this.extractWPCAddrAndPageOfImageTable(tableIndex);
+    if (pointer === null) {
+      return null;
+    }
+    return this.getROMAddressFromWPCAddrAndPage(pointer.addr, pointer.page);
+  }
+
+  public static extractWPCAddrAndPageOfImageTable(
+    tableIndex: number
+  ): WpcPointer | null {
+    // Standard validations and sanity checks
+    if (!DataParser.isValidTableIndex(tableIndex)) {
+      return null;
     }
 
-    romAddr =
-      DataParser.getAddrToWPCAddressOfVariableSizedImageTable(TableIndex);
-    if (romAddr == -1) {
-      return [-1, -1];
+    let romAddr =
+      DataParser.getAddrToWPCAddressOfVariableSizedImageTable(tableIndex);
+    if (romAddr === null) {
+      return null;
     }
 
-    Ptr = romAddr;
-
-    Addr = ROM.byteAtAddr(Ptr) & 0xff;
-    Addr = Addr << 8;
-    Addr = Addr | (ROM.byteAtAddr(Ptr + 1) & 0xff);
-    Addr = Addr & 0xffff;
-    Page = ROM.byteAtAddr(Ptr + 2) & 0xff;
+    let addr = wordAt(romAddr);
+    const page = ROM.byteAtAddr(romAddr + 2) & 0xff;
 
     {
       // Some ROMs have another pointer that needs de-referenced.  Instead of pointing to
       // the image table, its an address to the table within the same bank.  It appears
       // 0x00 follows the 2-byte address.
-      let TempAddr: number;
-      let TempPage: number;
-
-      romAddr = this.getROMAddressFromWPCAddrAndPage(Addr, Page);
-      if (romAddr == -1) {
-        return [-1, -1];
+      romAddr = this.getROMAddressFromWPCAddrAndPage(addr, page);
+      if (romAddr === null) {
+        return null;
       }
-      Ptr = romAddr;
 
-      TempAddr = ROM.byteAtAddr(Ptr) & 0xff;
-      TempAddr = TempAddr << 8;
-      TempAddr = TempAddr | (ROM.byteAtAddr(Ptr + 1) & 0xff);
-      TempAddr = TempAddr & 0xffff;
-      TempPage = ROM.byteAtAddr(Ptr + 2) & 0xff;
+      const tempAddr = wordAt(romAddr);
+      const tempPage = ROM.byteAtAddr(romAddr + 2) & 0xff;
 
-      logStr(`Testing Tempaddr ${toHex(TempAddr)} and Page ${toHex(TempPage)}`);
+      logStr(`Testing Tempaddr ${toHex(tempAddr)} and Page ${toHex(tempPage)}`);
 
-      if (
-        TempAddr >= WPC.BaseCodeAddrPagedRom &&
-        TempAddr < WPC.BaseCodeAddrPagedRom + WPC.PageLength
-        /*&& (TempPage == 0x00)*/
-      ) {
-        Addr = TempAddr;
+      if (isPagedAddr(tempAddr) /*&& (TempPage == 0x00)*/) {
+        addr = tempAddr;
       }
       logStr(
         `extractWPCAddrAndPageOfImageTable() FIXUP, Addr fixed to ${toHex(
-          Addr
-        )},${toHex(Page)}`
+          addr
+        )},${toHex(page)}`
       );
     }
 
-    return [Addr, Page];
+    return { addr, page };
   }
 
-  private static getROMAddressFromWPCAddrAndPage(Addr: number, Page: number) {
+  private static getROMAddressFromWPCAddrAndPage(addr: number, page: number) {
     // In  : The raw 16-bit address and 8-bit page from the WPC 3-byte address
     // Out : The 32-bit address in the ROM image corresponding to the WPC Addr and Page
 
     let romAddr: number;
 
-    if (
-      Addr >= WPC.BaseCodeAddrNonpagedRom &&
-      Addr < WPC.BaseCodeAddrNonpagedRom + WPC.NonpagedLength
-    ) {
-      if (Page != WPC.NonpagedBankIndicator) {
+    if (isNonpagedAddr(addr)) {
+      if (page != WPC.NonpagedBankIndicator) {
         logStr(
-          `getROMAddressFromWPCAddrAndPage() Non-banked WPC addr ${Addr} followed by page byte ${Page}, normal when reading from opcode or some ROMs with 2-byte table addr entries. Forcing page to ${WPC.NonpagedBankIndicator}`
+          `getROMAddressFromWPCAddrAndPage() Non-banked WPC addr ${addr} followed by page byte ${page}, normal when reading from opcode or some ROMs with 2-byte table addr entries. Forcing page to ${WPC.NonpagedBankIndicator}`
         );
-        Page = WPC.NonpagedBankIndicator;
+        page = WPC.NonpagedBankIndicator;
       }
     }
 
-    if (
-      Page == WPC.NonpagedBankIndicator &&
-      Addr >= WPC.BaseCodeAddrNonpagedRom &&
-      Addr < WPC.BaseCodeAddrNonpagedRom + WPC.NonpagedLength
-    ) {
+    if (page == WPC.NonpagedBankIndicator && isNonpagedAddr(addr)) {
       romAddr =
         (ROM.totalPages - 2) * WPC.PageLength +
-        (Addr - WPC.BaseCodeAddrNonpagedRom);
+        (addr - WPC.BaseCodeAddrNonpagedRom);
     } else if (
-      Page >= ROM.basePageIndex &&
-      Page < ROM.basePageIndex + ROM.totalPages - 2 &&
-      Addr >= WPC.BaseCodeAddrPagedRom &&
-      Addr < WPC.BaseCodeAddrNonpagedRom
+      page >= ROM.basePageIndex &&
+      page < ROM.basePageIndex + ROM.totalPages - 2 &&
+      addr >= WPC.BaseCodeAddrPagedRom &&
+      addr < WPC.BaseCodeAddrNonpagedRom
     ) {
       romAddr =
-        (Page - ROM.basePageIndex) * WPC.PageLength +
-        (Addr - WPC.BaseCodeAddrPagedRom);
+        (page - ROM.basePageIndex) * WPC.PageLength +
+        (addr - WPC.BaseCodeAddrPagedRom);
     } else {
       logStr(
-        `Invalid WPC Addr and Page, ${toHex(Addr)},${toHex(
-          Page
+        `Invalid WPC Addr and Page, ${toHex(addr)},${toHex(
+          page
         )}, BasePage ${toHex(ROM.basePageIndex)}, TotalPages ${ROM.totalPages}`
       );
-      return -1;
+      return null;
     }
     if (romAddr >= ROM.size) {
       logStr(
         `Unexpected: Calculated addr in ROM ${romAddr} is greater than determined ROM size ${ROM.size}`
       );
-      return -1;
+      return null;
     }
 
     return romAddr;
   }
 
   private static getAddrToWPCAddressOfVariableSizedImageTable(
-    TableIndex: number
+    tableIndex: number
   ) {
-    let romAddr: number;
-
     // Standard validations and sanity checks
-    if (!VariableSizedImageData.TableAddress) {
-      return -1;
-    }
-    if (VariableSizedImageData.TableAddress >= ROM.size) {
-      return -1;
-    }
-    if (
-      TableIndex < VariableSizedImageData.minTableIndex ||
-      TableIndex > VariableSizedImageData.maxTableIndex
-    ) {
-      return -1;
+    if (!DataParser.isValidTableIndex(tableIndex)) {
+      return null;
     }
 
-    romAddr = VariableSizedImageData.TableAddress + 3 * TableIndex;
+    const romAddr = VariableSizedImageData.tableAddress + 3 * tableIndex;
 
     if (romAddr >= ROM.size) {
-      return -1;
+      return null;
     }
 
     return romAddr;
   }
 
-  public static getROMAddressFromAddrOf3ByteWPCAddrPage(pSrc: number) {
+  public static getROMAddressFromAddrOf3ByteWPCAddrPage(src: number) {
     // In  : Address of memory containg a 3-byte WPC Address notation
     // Out : Address in ROM image to which the WPC 3-byte address refers
-    let Addr: number;
-    let Page: number;
-
-    const result = DataParser.extractWPCAddrAndPageFromBuffer(pSrc);
-    Addr = result[0];
-    Page = result[1];
-    if (Addr == -1) {
+    const pointer = DataParser.extractWPCAddrAndPageFromBuffer(src);
+    if (pointer === null) {
       logStr(
         `Error from ExtractWPCAddrAndPageFromBuffer(), Passed it ptr to: ${
-          ROM.byteAtAddr(pSrc) & 0xff
-        } ${ROM.byteAtAddr(pSrc + 1) & 0xff} ${ROM.byteAtAddr(pSrc + 2) & 0xff}`
+          ROM.byteAtAddr(src) & 0xff
+        } ${ROM.byteAtAddr(src + 1) & 0xff} ${ROM.byteAtAddr(src + 2) & 0xff}`
       );
-      return -1;
+      return null;
     }
+    return DataParser.getROMAddressFromWPCPointer(pointer);
+  }
 
+  /** Like getROMAddressFromAddrOf3ByteWPCAddrPage(), for a pointer that has already been read. */
+  private static getROMAddressFromWPCPointer(pointer: WpcPointer) {
     logStr(
       `getROMAddressFromAddrOf3ByteWPCAddrPage() WPC TableAddress ${toHex(
-        Addr
-      )},${toHex(Page)}`
+        pointer.addr
+      )},${toHex(pointer.page)}`
     );
 
-    Addr = DataParser.getROMAddressFromWPCAddrAndPage(Addr, Page);
-    if (Addr == -1) {
+    const romAddr = DataParser.getROMAddressFromWPCAddrAndPage(
+      pointer.addr,
+      pointer.page
+    );
+    if (romAddr === null) {
       logStr(
-        `Error from getROMAddressFromWPCAddrAndPage(), Passed it WPC Addr ${Addr},${Page}`
+        `Error from getROMAddressFromWPCAddrAndPage(), Passed it WPC Addr ${pointer.addr},${pointer.page}`
       );
-      return -1;
+      return null;
     }
 
     logStr(
       `getROMAddressFromAddrOf3ByteWPCAddrPage() ROM TableAddress ${toHex(
-        Addr
+        romAddr
       )}`
     );
 
-    return Addr;
+    return romAddr;
   }
 
   public static getROMAddressOfVariableSizedImageIndex(
-    TableIndex: number,
-    ImageIndex: number
+    tableIndex: number,
+    imageIndex: number
   ) {
-    let Addr: number;
-    let Page: number;
-    let Ptr: number;
-    let TableHeight: number;
-    let TableSpacing: number; // not sure at this point, 0x01 follows TableHeight
-    let ImageIndexMin: number,
-      ImageIndexMax: number,
-      ImageNum: number,
-      ImageFound: number;
-
-    //logStr(`getROMAddressOfVariableSizedImageIndex() Looking up ROM addres for TableIndex ${TableIndex}, ImageIndex ${ImageIndex}`);
-
-    Addr = DataParser.getROMAddressOfVariableSizedImageTable(TableIndex);
-    if (Addr == -1) {
-      return -1;
+    let addr = DataParser.getROMAddressOfVariableSizedImageTable(tableIndex);
+    if (addr === null) {
+      return null;
     }
 
     // sanity check (maybe a bit redundant at this point)
-    if (Addr >= ROM.size) {
-      return -1;
+    if (addr >= ROM.size) {
+      return null;
     }
 
     // Get pointer to area in ROM of actual table
-    Ptr = Addr;
-    ImageNum = ImageFound = 0;
+    let ptr = addr;
+    let imageNum = 0;
+    let imageFound = false;
 
     // Figure out which Nth image number this is in the table, there are min/max groups which cause gaps which we account for here
-    while ((ROM.byteAtAddr(Ptr) & 0xff) != 0x00) {
-      ImageIndexMin = ROM.byteAtAddr(Ptr++) & 0xff;
-      ImageIndexMax = ROM.byteAtAddr(Ptr++) & 0xff;
-      //logStr(`getROMAddressOfVariableSizedImageIndex() ImageIndexMin ${ImageIndexMin} ImageIndexMax ${ImageIndexMax}`);
+    while ((ROM.byteAtAddr(ptr) & 0xff) != 0x00) {
+      let imageIndexMin = ROM.byteAtAddr(ptr++) & 0xff;
+      const imageIndexMax = ROM.byteAtAddr(ptr++) & 0xff;
 
       //
-      if (ImageIndexMin > ImageIndexMax) {
-        return -1;
+      if (imageIndexMin > imageIndexMax) {
+        return null;
       }
-      if (ImageFound == 0) {
-        while (ImageIndexMin <= ImageIndexMax) {
-          if (ImageIndex <= ImageIndexMin) {
+      if (!imageFound) {
+        while (imageIndexMin <= imageIndexMax) {
+          if (imageIndex <= imageIndexMin) {
             logStr(
-              `getROMAddressOfVariableSizedImageIndex() ImageFound, ImageNum ${ImageNum}, ImageIndexMin ${ImageIndexMin}, ImageIndexMax ${ImageIndexMax}`
+              `getROMAddressOfVariableSizedImageIndex() ImageFound, ImageNum ${imageNum}, ImageIndexMin ${imageIndexMin}, ImageIndexMax ${imageIndexMax}`
             );
-            ImageFound = 1;
+            imageFound = true;
             break;
           }
-          ImageNum++;
-          ImageIndexMin++;
+          imageNum++;
+          imageIndexMin++;
         }
       }
     }
 
     //
-    Ptr++; // get past the 0x00 byte
-    TableHeight = ROM.byteAtAddr(Ptr++);
-    TableSpacing = ROM.byteAtAddr(Ptr++);
-
-    //
-    //logStr(`getROMAddressOfVariableSizedImageIndex() TableHeight ${TableHeight}, TableSpacing ${TableSpacing}`);
+    ptr++; // get past the 0x00 byte
+    const tableHeight = ROM.byteAtAddr(ptr++);
+    const tableSpacing = ROM.byteAtAddr(ptr++); // not sure at this point, 0x01 follows TableHeight
 
     // advance to desired image
-    Ptr += ImageNum * 2;
+    ptr += imageNum * 2;
 
     // Addr comes from pointer in table
-    Addr = ROM.byteAtAddr(Ptr) & 0xff;
-    Addr = Addr << 8;
-    Addr |= ROM.byteAtAddr(Ptr + 1) & 0xff;
-    Addr &= 0xffff;
+    addr = wordAt(ptr);
 
     // Page is looked up from the current table index
-    const result = DataParser.extractWPCAddrAndPageOfImageTable(TableIndex);
-    Page = result[1];
-    if (Page == -1) {
-      return -1;
+    const pointer = DataParser.extractWPCAddrAndPageOfImageTable(tableIndex);
+    if (pointer === null) {
+      return null;
     }
 
-    Addr = DataParser.getROMAddressFromWPCAddrAndPage(Addr, Page);
-    if (Addr == -1) {
-      return -1;
+    const romAddr = DataParser.getROMAddressFromWPCAddrAndPage(
+      addr,
+      pointer.page
+    );
+    if (romAddr === null) {
+      return null;
     }
 
     //
     logStr(
-      `getROMAddressOfVariableSizedImageIndex() TableHeight ${TableHeight}, TableSpacing ${TableSpacing} ImageIndex ${ImageIndex} at ${Addr}`
+      `getROMAddressOfVariableSizedImageIndex() TableHeight ${tableHeight}, TableSpacing ${tableSpacing} ImageIndex ${imageIndex} at ${romAddr}`
     );
 
-    return Addr;
+    return romAddr;
   }
 
-  private static extractWPCAddrAndPageFromBuffer(pSrc: number) {
+  private static extractWPCAddrAndPageFromBuffer(src: number) {
     // In  : Address of memory containg a 3-byte WPC Address notation
     // Out : The raw 16-bit address and 8-bit page from the WPC 3-byte address
-    let Addr: number;
-    let Page: number;
-    Addr = ROM.byteAtAddr(pSrc) & 0xff;
-    Addr = Addr << 8;
-    Addr = Addr | (ROM.byteAtAddr(pSrc + 1) & 0xff);
-    Addr = Addr & 0xffff;
-    Page = ROM.byteAtAddr(pSrc + 2) & 0xff;
-    if (
-      Addr >= WPC.BaseCodeAddrNonpagedRom &&
-      Addr < WPC.BaseCodeAddrNonpagedRom + WPC.NonpagedLength
-    ) {
-      if (Page != WPC.NonpagedBankIndicator) {
+    return DataParser.validateWPCPointer(
+      wordAt(src),
+      ROM.byteAtAddr(src + 2) & 0xff
+    );
+  }
+
+  /** Checks that a WPC address and page make sense. Returns null if not. */
+  private static validateWPCPointer(
+    addr: number,
+    page: number
+  ): WpcPointer | null {
+    if (isNonpagedAddr(addr)) {
+      if (page != WPC.NonpagedBankIndicator) {
         logStr(
           `extractWPCAddrAndPageFromBuffer() Non-banked WPC addr ${toHex(
-            Addr
+            addr
           )} followed by page byte ${toHex(
-            Page
+            page
           )}, normal when reading from opcode or some ROMs with 2-byte table addr entries. Forcing page to ${
             WPC.NonpagedBankIndicator
           }`
         );
-        Page = WPC.NonpagedBankIndicator;
+        page = WPC.NonpagedBankIndicator;
       }
     }
 
-    if (Addr != null) {
-      // Caller wants addr, validate it makes sense first
-      if (
-        (Addr >= WPC.BaseCodeAddrPagedRom &&
-          Addr < WPC.BaseCodeAddrPagedRom + WPC.PageLength) ||
-        (Addr >= WPC.BaseCodeAddrNonpagedRom &&
-          Addr < WPC.BaseCodeAddrNonpagedRom + WPC.NonpagedLength)
-      ) {
-      } else {
-        logStr(`Expected a WPC Addr, but read ${toHex(Addr)}`);
-        return [-1, -1];
-      }
+    // Validate that the addr makes sense
+    if (!isPagedAddr(addr) && !isNonpagedAddr(addr)) {
+      logStr(`Expected a WPC Addr, but read ${toHex(addr)}`);
+      return null;
     }
-    if (Page != null) {
-      // Caller wants page, validate it makes sense first
-      if (
-        (Page >= ROM.basePageIndex &&
-          Page < ROM.basePageIndex + ROM.totalPages) ||
-        Page == WPC.NonpagedBankIndicator
-      ) {
-      } else {
-        logStr(
-          `Expected a WPC Page Number, but read ${Page}, Base is ${ROM.basePageIndex}, Total Pages ${ROM.totalPages}`
-        );
-        return [-1, -1];
-      }
+    // Validate that the page makes sense
+    if (
+      !(
+        (page >= ROM.basePageIndex &&
+          page < ROM.basePageIndex + ROM.totalPages) ||
+        page == WPC.NonpagedBankIndicator
+      )
+    ) {
+      logStr(
+        `Expected a WPC Page Number, but read ${page}, Base is ${ROM.basePageIndex}, Total Pages ${ROM.totalPages}`
+      );
+      return null;
     }
-    return [Addr, Page];
+    return { addr, page };
   }
 
   private static processHitType(
-    HitType: number,
-    HitTablePtr: number,
-    HitPagePtr: number,
-    Ptr: number
-  ) {
-    let Addr: number;
-    let HitBuf = [0, 0, 0];
-    let pTbl: number;
-
-    switch (HitType) {
+    hitType: number,
+    hitTablePtr: number,
+    hitPagePtr: number | null,
+    ptr: number
+  ): number | null {
+    switch (hitType) {
       // this not used at this time...
-      case HitTypes.AddrAddrAddr:
+      case HitTypes.AddrAddrAddr: {
         //
         logStr(
           `Potential Match. HitType ${toHex(
-            ROM.byteAtAddr(Ptr - 1) & 0xff
-          )}, HitBytes ${toHex(ROM.byteAtAddr(HitTablePtr) & 0xff)} ${toHex(
-            ROM.byteAtAddr(HitTablePtr + 1) & 0xff
+            ROM.byteAtAddr(ptr - 1) & 0xff
+          )}, HitBytes ${toHex(ROM.byteAtAddr(hitTablePtr) & 0xff)} ${toHex(
+            ROM.byteAtAddr(hitTablePtr + 1) & 0xff
           )}`
         );
 
         //
-        Addr = DataParser.getROMAddressFromAddrOf3ByteWPCAddrPage(HitTablePtr);
-        if (Addr == -1) {
+        const addr = DataParser.getROMAddressFromAddrOf3ByteWPCAddrPage(hitTablePtr);
+        if (addr === null) {
           logStr(
-            `Error from getROMAddressFromAddrOf3ByteWPCAddrPage(), Passed it WPC Ptr to ${
-              HitTablePtr & 0xff
-            } ${(HitTablePtr + 1) & 0xff}`
+            `Error from getROMAddressFromAddrOf3ByteWPCAddrPage(), Passed it WPC Ptr to ${toHex(
+              ROM.byteAtAddr(hitTablePtr)
+            )} ${toHex(ROM.byteAtAddr(hitTablePtr + 1))}`
           );
-          return -1;
+          return null;
         }
 
         //
         logStr(
-          `HitTypes.AddrAddrAddr derived ROM TableAddressAddress ${Addr}, going to HitTypes.AddrAddr`
+          `HitTypes.AddrAddrAddr derived ROM TableAddressAddress ${addr}, going to HitTypes.AddrAddr`
         );
 
-        HitTablePtr = ROM.byteAtAddr(Addr);
-      // no break!  now that we have the table address address, go to the following to get WPC address of the table, and then ROM address of the table
+        hitTablePtr = addr;
+      }
+      // falls through: now that we have the table address address, go to the following to get WPC address of the table, and then ROM address of the table
 
-      case HitTypes.AddrAddr:
+      case HitTypes.AddrAddr: {
         //
         logStr(
           `Potential Match. HitType ${toHex(
-            ROM.byteAtAddr(Ptr - 1) & 0xff
-          )}, HitBytes ${toHex(ROM.byteAtAddr(HitTablePtr) & 0xff)} ${toHex(
-            ROM.byteAtAddr(HitTablePtr + 1) & 0xff
+            ROM.byteAtAddr(ptr - 1) & 0xff
+          )}, HitBytes ${toHex(ROM.byteAtAddr(hitTablePtr) & 0xff)} ${toHex(
+            ROM.byteAtAddr(hitTablePtr + 1) & 0xff
           )}`
         );
         //
-        Addr = DataParser.getROMAddressFromAddrOf3ByteWPCAddrPage(HitTablePtr);
-        if (Addr == -1) {
+        const addr = DataParser.getROMAddressFromAddrOf3ByteWPCAddrPage(hitTablePtr);
+        if (addr === null) {
           logStr(
-            `Error from GetROMAddressFromAddrOf3ByteWPCAddrPage(), Passed it WPC Ptr to ${
-              HitTablePtr & 0xff
-            } ${(HitTablePtr + 1) & 0xff}`
+            `Error from GetROMAddressFromAddrOf3ByteWPCAddrPage(), Passed it WPC Ptr to ${toHex(
+              ROM.byteAtAddr(hitTablePtr)
+            )} ${toHex(ROM.byteAtAddr(hitTablePtr + 1))}`
           );
-          return -1;
+          return null;
         }
 
         //
         logStr(
           `HitTypes.AddrAddr derived TableAddress of ${toHex(
-            Addr
+            addr
           )} going to HitTypes.Addr`
         );
 
-        HitTablePtr = Addr;
-        HitPagePtr = Addr + 2; // in some cases when addr is in non-banked ROM this byte will get ignored
-      // no break!  now that we have the WPC table address, go to the following to get ROM address from WPC address
+        hitTablePtr = addr;
+        hitPagePtr = addr + 2; // in some cases when addr is in non-banked ROM this byte will get ignored
+      }
+      // falls through: now that we have the WPC table address, go to the following to get ROM address from WPC address
 
-      case HitTypes.Addr:
+      case HitTypes.Addr: {
         //
-        if (HitTablePtr == null) {
-          logStr("HitTypes.Addr, but HitTablePtr is NULL");
-          return -1;
-        }
-        //
-
-        HitBuf[0] = HitTablePtr; // & 0xff;
-        HitBuf[1] = HitTablePtr + 1; // & 0xff;
-        if (HitPagePtr == null) {
+        const hitAddr = wordAt(hitTablePtr);
+        let hitPage: number;
+        if (hitPagePtr === null) {
           // Null HitPagePtr is okay if the address is in non-paged ROM
-          let Addr;
-
-          Addr = HitBuf[0] & 0xff;
-          Addr = Addr << 8;
-          Addr = Addr | (HitBuf[1] & 0xff);
-          Addr = Addr & 0xffff;
-
-          if (
-            !(
-              Addr >= WPC.BaseCodeAddrNonpagedRom &&
-              Addr < WPC.BaseCodeAddrNonpagedRom + WPC.NonpagedLength
-            )
-          ) {
+          if (!isNonpagedAddr(hitAddr)) {
             logStr(
               `HitTypes.Addr, but HitPagePtr is NULL, and Addr is in paged ROM`
             );
-            return -1;
+            return null;
           }
-
-          HitBuf[2] = WPC.NonpagedBankIndicator;
+          hitPage = WPC.NonpagedBankIndicator;
         } else {
-          HitBuf[2] = ROM.byteAtAddr(HitPagePtr);
+          hitPage = ROM.byteAtAddr(hitPagePtr) & 0xff;
         }
-        /*
-#if 0
-//debug force particular table addr
-HitBuf[0] = 0x40;
-HitBuf[1] = 0x39;
-HitBuf[2] = 0x30;
-#endif
-*/
         //
         logStr(
           `Potential Match. HitType ${toHex(
-            ROM.byteAtAddr(Ptr - 1) & 0xff
-          )}, HitBytes ${toHex(ROM.byteAtAddr(HitBuf[0]) & 0xff)} ${toHex(
-            ROM.byteAtAddr(HitBuf[1]) & 0xff
-          )} ${toHex(HitBuf[2] & 0xff)}`
+            ROM.byteAtAddr(ptr - 1) & 0xff
+          )}, HitBytes ${toHex(hitAddr >> 8)} ${toHex(hitAddr & 0xff)} ${toHex(
+            hitPage
+          )}`
         );
         //
-        pTbl = DataParser.getROMAddressFromAddrOf3ByteWPCAddrPage(HitBuf[0]);
-        if (pTbl != -1) {
+        const pointer = DataParser.validateWPCPointer(hitAddr, hitPage);
+        const table =
+          pointer === null ? null : DataParser.getROMAddressFromWPCPointer(pointer);
+        if (table !== null) {
           logStr("Table Found!");
-          return pTbl;
+          return table;
         }
         //
         logStr(
-          `Error deriving table addr from hit, HitType ${
-            (Ptr - 1) & 0xff
-          }, HitBytes ${HitBuf[0] & 0xff} ${HitBuf[1] & 0xff} ${
-            HitBuf[2] & 0xff
-          }. Will keep looking. May need to debug by opening window while pressing <shift>`
+          `Error deriving table addr from hit, HitType ${toHex(
+            ROM.byteAtAddr(ptr - 1) & 0xff
+          )}, HitBytes ${toHex(hitAddr >> 8)} ${toHex(hitAddr & 0xff)} ${toHex(
+            hitPage
+          )}. Will keep looking. May need to debug by opening window while pressing <shift>`
         );
-        break;
+        return null;
+      }
 
       case HitTypes.None:
         return 0;
 
       default:
         logStr("Unexpected HitType");
-        break;
+        return null;
     }
-    return -1;
   }
 
   public static preAnalyzeVariableSizedImageTable() {
-    let Ptr: number;
-    let Addr: number;
-    let TableCount = 0;
+    let tableCount = 0;
     ROM.vSImageTableMap.length = 0; // Reset the index map
 
     // Standard validations and sanity checks
-    if (!VariableSizedImageData.TableAddress) {
-      logStr(`Unexpected NULL ${VariableSizedImageData.TableAddress}`);
+    if (!VariableSizedImageData.tableAddress) {
+      logStr(`Unexpected NULL ${VariableSizedImageData.tableAddress}`);
     }
-    if (VariableSizedImageData.TableAddress >= ROM.size) {
+    if (VariableSizedImageData.tableAddress >= ROM.size) {
       logStr(
-        `Unexpected table address ${VariableSizedImageData.TableAddress} is >= ${ROM.size}`
+        `Unexpected table address ${VariableSizedImageData.tableAddress} is >= ${ROM.size}`
       );
     }
 
-    Ptr = VariableSizedImageData.TableAddress;
+    let ptr = VariableSizedImageData.tableAddress;
 
     // We're now at the start of the table, lets count up the number table entries
-    let continueLooping = true;
-    while (continueLooping) {
-      Addr = DataParser.getROMAddressFromAddrOf3ByteWPCAddrPage(Ptr);
-      if (Addr == -1) {
-        continueLooping = false;
-      } else {
-        VariableSizedImageData.maxTableIndex++;
-        const result = DataParser.getLastImageIndex(
-          -1,
-          VariableSizedImageData.maxTableIndex - 1
+    while (DataParser.getROMAddressFromAddrOf3ByteWPCAddrPage(ptr) !== null) {
+      VariableSizedImageData.maxTableIndex++;
+      const result = DataParser.getLastImageIndex(
+        -1,
+        VariableSizedImageData.maxTableIndex - 1
+      );
+      // Add the index to a table so we can fetch the data later without having to parse the entire rom again
+      ROM.vSImageTableMap.push(result.indices);
+      ptr += 3;
+      tableCount++;
+      if (result.last == -1) {
+        VariableSizedImageData.maxTableIndex--;
+        logStr(
+          `Stopped looking for image tables due to getLastImageIndex() error on TableIndex ${VariableSizedImageData.maxTableIndex}`
         );
-        const ImageIndex = result[0];
-        // Add the index to a table so we can fetch the data later without having to parse the entire rom again
-        ROM.vSImageTableMap.push(result[1]); //[VariableSizedImageData.maxTableIndex-1].push(ImageIndex);
-        if (ImageIndex == -1) {
-          VariableSizedImageData.maxTableIndex--;
-          logStr(
-            `Stopped looking for image tables due to getLastImageIndex() error on TableIndex ${VariableSizedImageData.maxTableIndex}`
-          );
-          continueLooping = false;
-        }
-        Ptr += 3;
-        TableCount++;
+        break;
       }
     }
 
-    logStr(`Determined TableCount: ${TableCount}%d`);
+    logStr(`Determined TableCount: ${tableCount}`);
 
-    if (TableCount == 0) {
+    if (tableCount == 0) {
       logStr("Found 0 table entries");
       return -1;
     }
 
     // Last 0-based, valid, image table index
     VariableSizedImageData.minTableIndex = 0;
-    VariableSizedImageData.maxTableIndex = TableCount - 1;
-
-    // Backup to the last valid image table, for purposes of debug message/validation
-    //logStr(`Last Table: ${(ROM.byteAtAddr(Ptr-3))&0xFF} ${(ROM.byteAtAddr((Ptr-2)))&0xFF} ${(ROM.byteAtAddr((Ptr-1)))&0xFF}, ROM Addr ${Addr}`);
+    VariableSizedImageData.maxTableIndex = tableCount - 1;
 
     //
     VariableSizedImageData.maxImageIndex = DataParser.getLastImageIndex(
       VariableSizedImageData.maxImageIndex,
       VariableSizedImageData.maxTableIndex
-    )[0];
+    ).last;
     if (VariableSizedImageData.maxImageIndex == -1) {
       logStr(
         `Error looking up max image index for last table index ${VariableSizedImageData.maxTableIndex}`
@@ -1039,29 +908,24 @@ HitBuf[2] = 0x30;
     return 0;
   }
 
-  public static getVariableSizedImageTableMetadata(TableIndex: number) {
-    let Addr: number;
-    let Ptr: number;
-    let TableHeight: number;
-    let TableSpacing: number; // not sure at this point, 0x01 follows TableHeight
-
-    Addr = DataParser.getROMAddressOfVariableSizedImageTable(TableIndex);
-    if (Addr == -1) {
-      return [-1, -1];
+  public static getVariableSizedImageTableMetadata(tableIndex: number) {
+    const addr = DataParser.getROMAddressOfVariableSizedImageTable(tableIndex);
+    if (addr === null) {
+      return null;
     }
 
     // sanity check (maybe a bit redundant at this point)
-    if (Addr >= ROM.size) {
-      return [-1, -1];
+    if (addr >= ROM.size) {
+      return null;
     }
 
     // Get pointer to area in ROM of actual table
-    Ptr = Addr;
+    let ptr = addr;
 
     // Past the 0x00
-    while ((ROM.byteAtAddr(Ptr++) & 0xff) != 0x00);
-    TableHeight = ROM.byteAtAddr(Ptr++);
-    TableSpacing = ROM.byteAtAddr(Ptr++);
-    return [TableHeight, TableSpacing];
+    while ((ROM.byteAtAddr(ptr++) & 0xff) != 0x00);
+    const height = ROM.byteAtAddr(ptr++);
+    const spacing = ROM.byteAtAddr(ptr++); // not sure at this point, 0x01 follows TableHeight
+    return { height, spacing };
   }
 }

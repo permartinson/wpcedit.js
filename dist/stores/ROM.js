@@ -11,26 +11,26 @@ export class ROM {
         this.instance = new ROM(data);
         return this.instance;
     }
-    static byteAtAddr(Addr) {
-        if (Addr > ROM.size) {
+    static byteAtAddr(addr) {
+        if (addr > ROM.size) {
             logStr("ERROR: Address is out of range!");
         }
-        return this.currentData[Addr] & 0xFF;
+        return this.currentData[addr] & 0xFF;
     }
     static setRom(data) {
-        const Length = data.length;
-        let status = { error: false, msg: '' };
-        if (Length != 0x40000 && Length != 0x80000 && Length != 0x100000) {
+        const length = data.length;
+        const status = { error: false, msg: '' };
+        if (length != 0x40000 && length != 0x80000 && length != 0x100000) {
             const msg = "The file doesn't appear to be a WPC rom image.";
             logStr(msg);
             status.error = true;
             status.msg = msg;
             return status;
         }
-        ROM.size = Length;
-        ROM.endPtr = Length;
+        ROM.size = length;
+        ROM.endPtr = length;
         ROM.currentData = data;
-        ROM.totalPages = Math.floor((Length + (WPC.PageLength - 1)) / WPC.PageLength);
+        ROM.totalPages = Math.floor((length + (WPC.PageLength - 1)) / WPC.PageLength);
         ROM.startPtr = 0;
         ROM.endPtr = ROM.size - 1;
         ROM.basePageIndex = ROM.byteAtAddr(ROM.startPtr) & 0xff;

@@ -1,8 +1,8 @@
-import * as Defines from "../resources/Defines";
+import * as Defines from "../resources/Defines.js";
 export declare class FullFrameImageData {
-    static TableAddress: number;
-    static CurrentImageIndex: number;
-    static Planes: Defines.DMDPlanes;
+    static tableAddress: number;
+    static currentImageIndex: number;
+    static planes: Defines.DmdPlanes;
     private static instance;
     private constructor();
     static init(): FullFrameImageData;

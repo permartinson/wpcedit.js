@@ -22,8 +22,8 @@ export class WPCEdit {
     }
     static reloadData() {
         let status = { error: false, msg: '' };
-        VariableSizedImageData.CurrentImageIndex = 0;
-        VariableSizedImageData.CurrentTableIndex = 0;
+        VariableSizedImageData.currentImageIndex = 0;
+        VariableSizedImageData.currentTableIndex = 0;
         VariableSizedImageData.maxImageIndex = 0;
         VariableSizedImageData.maxTableIndex = 0;
         VariableSizedImageData.minImageIndex = 0;
@@ -34,7 +34,7 @@ export class WPCEdit {
             status.error = true;
             status.msg = msg;
         }
-        FullFrameImageData.CurrentImageIndex = 0;
+        FullFrameImageData.currentImageIndex = 0;
         if (DataParser.preAnalyzeVariableSizedImageTable() == -1) {
             const msg = "Error from DataParser.preAnalyzeVariableSizedImageTable()";
             console.warn(msg);
@@ -42,9 +42,9 @@ export class WPCEdit {
             status.msg = msg;
             return status;
         }
-        VariableSizedImageData.CurrentTableIndex = VariableSizedImageData.minTableIndex;
-        VariableSizedImageData.CurrentImageIndex = DataParser.getFirstImageIndex(VariableSizedImageData.CurrentTableIndex);
-        if (VariableSizedImageData.CurrentImageIndex == -1) {
+        VariableSizedImageData.currentTableIndex = VariableSizedImageData.minTableIndex;
+        VariableSizedImageData.currentImageIndex = DataParser.getFirstImageIndex(VariableSizedImageData.currentTableIndex);
+        if (VariableSizedImageData.currentImageIndex == -1) {
             const msg = "Error setting up first image index.";
             status.error = true;
             status.msg = msg;
@@ -71,10 +71,10 @@ export class WPCEdit {
         return status;
     }
     static get verbose() {
-        return Settings.VerboseMode;
+        return Settings.verboseMode;
     }
     static set verbose(state) {
-        Settings.VerboseMode = state;
+        Settings.verboseMode = state;
     }
 }
 WPCEdit.fullFrameImage = FullFrameImage.init();

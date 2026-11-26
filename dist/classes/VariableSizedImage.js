@@ -35,20 +35,20 @@ export class VariableSizedImage {
         return ROM.vSImageTableMap;
     }
     set index(index) {
-        VariableSizedImageData.CurrentImageIndex = index;
+        VariableSizedImageData.currentImageIndex = index;
     }
     get index() {
-        return VariableSizedImageData.CurrentImageIndex;
+        return VariableSizedImageData.currentImageIndex;
     }
     set table(table) {
-        VariableSizedImageData.CurrentTableIndex = table;
+        VariableSizedImageData.currentTableIndex = table;
     }
     get table() {
-        return VariableSizedImageData.CurrentTableIndex;
+        return VariableSizedImageData.currentTableIndex;
     }
     getImageAt(table, index) {
-        VariableSizedImageData.CurrentTableIndex = table;
-        VariableSizedImageData.CurrentImageIndex = index;
+        VariableSizedImageData.currentTableIndex = table;
+        VariableSizedImageData.currentImageIndex = index;
         VariableSizedImage._getCurrent();
         return VariableSizedImage.currentPlane;
     }
@@ -95,24 +95,24 @@ export class VariableSizedImage {
     static _getCurrent() {
         DmdDecoder.decodeVariableSizedImageData();
         VariableSizedImage.currentPlane.image =
-            VariableSizedImageData.Planes.Plane0.Plane_Data;
+            VariableSizedImageData.planes.plane0.data;
         VariableSizedImage.currentPlane.mask =
-            VariableSizedImageData.Planes.Plane0.Plane_Skipped;
+            VariableSizedImageData.planes.plane0.skipped;
         VariableSizedImage.currentPlane.xor =
-            VariableSizedImageData.Planes.Plane0.Plane_XorBits;
+            VariableSizedImageData.planes.plane0.xorBits;
         VariableSizedImage.currentPlane.type =
-            VariableSizedImageData.Planes.Plane0.Plane_Encoding;
+            VariableSizedImageData.planes.plane0.encoding;
         VariableSizedImage.currentPlane.width =
-            VariableSizedImageData.CurrentImageXSize;
+            VariableSizedImageData.currentImageXSize;
         VariableSizedImage.currentPlane.height =
-            VariableSizedImageData.CurrentImageYSize;
+            VariableSizedImageData.currentImageYSize;
         VariableSizedImage.currentPlane.xOffset =
-            VariableSizedImageData.CurrentImageXShift;
+            VariableSizedImageData.currentImageXShift;
         VariableSizedImage.currentPlane.yOffset =
-            VariableSizedImageData.CurrentImageYShift;
-        VariableSizedImage.currentPlane.address = VariableSizedImageData.Address;
+            VariableSizedImageData.currentImageYShift;
+        VariableSizedImage.currentPlane.address = VariableSizedImageData.address;
         VariableSizedImage.currentPlane.tableAddress =
-            VariableSizedImageData.TableAddress;
+            VariableSizedImageData.tableAddress;
     }
 }
 VariableSizedImage.currentPlane = {

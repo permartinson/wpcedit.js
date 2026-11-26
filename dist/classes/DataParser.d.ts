@@ -1,20 +1,34 @@
+export type WpcPointer = {
+    addr: number;
+    page: number;
+};
 export declare class DataParser {
     private static instance;
     private constructor();
-    static init(romData: Uint8Array): DataParser;
+    static init(): DataParser;
     static initTableAddrs(dataType: number): 0 | -1 | undefined;
-    static getFirstImageIndex(TableIndex: number): number;
-    static getNextImageIndex(pImageIndex: number, TableIndex: number): number;
-    static getLastImageIndex(pImageIndex: number, TableIndex: number): [number, number[]];
-    static getPrevImageIndex(pImageIndex: number, TableIndex: number): number;
+    private static skipPointer;
+    static getFirstImageIndex(tableIndex: number): number;
+    static getNextImageIndex(imageIndex: number, tableIndex: number): number;
+    static getLastImageIndex(imageIndex: number, tableIndex: number): {
+        last: number;
+        indices: number[];
+    };
+    static getPrevImageIndex(imageIndex: number, tableIndex: number): number;
+    private static isValidTableIndex;
     private static getROMAddressOfVariableSizedImageTable;
-    static extractWPCAddrAndPageOfImageTable(TableIndex: number): number[];
+    static extractWPCAddrAndPageOfImageTable(tableIndex: number): WpcPointer | null;
     private static getROMAddressFromWPCAddrAndPage;
     private static getAddrToWPCAddressOfVariableSizedImageTable;
-    static getROMAddressFromAddrOf3ByteWPCAddrPage(pSrc: number): number;
-    static getROMAddressOfVariableSizedImageIndex(TableIndex: number, ImageIndex: number): number;
+    static getROMAddressFromAddrOf3ByteWPCAddrPage(src: number): number | null;
+    private static getROMAddressFromWPCPointer;
+    static getROMAddressOfVariableSizedImageIndex(tableIndex: number, imageIndex: number): number | null;
     private static extractWPCAddrAndPageFromBuffer;
+    private static validateWPCPointer;
     private static processHitType;
     static preAnalyzeVariableSizedImageTable(): 0 | -1;
-    static getVariableSizedImageTableMetadata(TableIndex: number): number[];
+    static getVariableSizedImageTableMetadata(tableIndex: number): {
+        height: number;
+        spacing: number;
+    } | null;
 }

@@ -2,22 +2,21 @@ import { WPC } from "../resources/Constants.js";
 export class FullFrameImageData {
     constructor() {
         const plane = new Uint8Array(WPC.DmdPageBytes);
-        const DMDplane = {
-            Plane_Status: 0,
-            Plane_Size: 0,
-            Plane_Data: plane,
-            Plane_Skipped: plane,
-            Plane_XorFlags: plane,
-            Plane_XorBits: plane,
-            Plane_Encoding: 255,
-            Address: 0,
-            Table_Address: 0
+        const dmdPlane = {
+            status: 0,
+            size: 0,
+            data: plane,
+            skipped: plane,
+            xorFlags: plane,
+            xorBits: plane,
+            encoding: 255,
+            address: 0,
+            tableAddress: 0,
         };
-        const DMDplanes = {
-            Plane0: DMDplane,
-            Plane1: DMDplane,
+        FullFrameImageData.planes = {
+            plane0: dmdPlane,
+            plane1: dmdPlane,
         };
-        FullFrameImageData.Planes = DMDplanes;
     }
     static init() {
         if (FullFrameImageData.instance) {
@@ -27,6 +26,5 @@ export class FullFrameImageData {
         return this.instance;
     }
 }
-FullFrameImageData.TableAddress = 0;
-FullFrameImageData.CurrentImageIndex = 0;
-;
+FullFrameImageData.tableAddress = 0;
+FullFrameImageData.currentImageIndex = 0;

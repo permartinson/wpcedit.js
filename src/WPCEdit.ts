@@ -32,8 +32,8 @@ export class WPCEdit {
     private static reloadData() {
         let status = {error:false, msg:''}
         // resetting the values to start from scratch:
-        VariableSizedImageData.CurrentImageIndex = 0;
-        VariableSizedImageData.CurrentTableIndex = 0;
+        VariableSizedImageData.currentImageIndex = 0;
+        VariableSizedImageData.currentTableIndex = 0;
         VariableSizedImageData.maxImageIndex = 0;
         VariableSizedImageData.maxTableIndex = 0;
         VariableSizedImageData.minImageIndex = 0;
@@ -45,7 +45,7 @@ export class WPCEdit {
             status.error = true;
             status.msg = msg;
           }
-          FullFrameImageData.CurrentImageIndex = 0;
+          FullFrameImageData.currentImageIndex = 0;
       
                   if (DataParser.preAnalyzeVariableSizedImageTable() == -1) {
                       // PreAnalyzeVariableSizedImageTable() should have printed whatever error caused it to return == -1 value
@@ -56,9 +56,9 @@ export class WPCEdit {
                       return status;
                   }
                       
-                  VariableSizedImageData.CurrentTableIndex = VariableSizedImageData.minTableIndex;
-                    VariableSizedImageData.CurrentImageIndex = DataParser.getFirstImageIndex(VariableSizedImageData.CurrentTableIndex);
-                  if (VariableSizedImageData.CurrentImageIndex == -1) {
+                  VariableSizedImageData.currentTableIndex = VariableSizedImageData.minTableIndex;
+                    VariableSizedImageData.currentImageIndex = DataParser.getFirstImageIndex(VariableSizedImageData.currentTableIndex);
+                  if (VariableSizedImageData.currentImageIndex == -1) {
                     const msg = "Error setting up first image index.";
                     status.error = true;
                     status.msg = msg;          
@@ -88,10 +88,10 @@ export class WPCEdit {
     }
 
     public static get verbose():boolean {
-        return Settings.VerboseMode;
+        return Settings.verboseMode;
     }
 
     public static set verbose(state:boolean) {
-        Settings.VerboseMode = state;
+        Settings.verboseMode = state;
     }
 };

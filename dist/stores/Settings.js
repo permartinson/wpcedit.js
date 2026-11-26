@@ -1,6 +1,5 @@
 export class Settings {
-    constructor() {
-    }
+    constructor() { }
     static init() {
         if (Settings.instance) {
             return this.instance;
@@ -9,5 +8,4 @@ export class Settings {
         return this.instance;
     }
 }
-Settings.VerboseMode = false;
-;
+Settings.verboseMode = false;

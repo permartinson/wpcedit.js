@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- New internal helpers `RomReader`, `PlaneWriter` and `BitReader` that keep their own read and write positions, like the pointers in the original C++ code. Not used yet.
+- Image encoding 0x00 reads through `RomReader`. Output unchanged.
+- Image encoding 0x01/0x02 reads through `RomReader` and writes through `PlaneWriter` instead of tuple returns. Output unchanged.
+- Image encoding 0x04/0x05 reads its bit stream through `BitReader` and writes through `PlaneWriter`. Output unchanged.
+- Image encoding 0x06/0x07 writes the image, XOR flags and XOR bits through three `PlaneWriter`s. Output unchanged.
+- Image encoding 0x08/0x09 uses `RomReader` and `PlaneWriter`, and follows the loop in the original C++ code instead of a nested helper function. Output unchanged.
+- Image encoding 0x0A/0x0B reads its bit stream through `BitReader`. The old `readNextBit()`, `readNext8BitValue()` and `writeNext8BitValue()` helpers and the `ImageHeader` type are removed. Output unchanged.
+- Font and sprite decoding (`decodeVariableSizedImage…`) reads through `RomReader` and writes through `PlaneWriter`. The last tuple-returning write helper is removed. Output unchanged.
+- Full frame decoding passes one `RomReader` from the graphics table entry through to the encoding, like the `**Source` pointer in the original C++ code. Output unchanged.
+- `DataParser` returns `{ addr, page }` objects and `null` instead of `[-1, -1]` tuples and `-1` for addresses, and uses camelCase names. Output unchanged.
+- The internal `DMDPlane` type is renamed `DmdPlane` with camelCase fields (`data`, `skipped`, `xorFlags` …), the image navigation in `DmdDecoder` returns objects instead of tuples, and the unused `typedef` enum is removed. The public `Plane` type is unchanged. Output unchanged.
+- The internal stores (`VariableSizedImageData`, `FullFrameImageData`, `Settings`, `ROM`) use camelCase names (`tableAddress`, `currentImageIndex`, `planes` …). Output unchanged.
+- Each image encoding now lives in its own file under `src/classes/encodings/`, and the duplicated list of WPC games in `DmdDecoder.ts` is removed (it is kept in `DataParser.ts`). Output unchanged.
+
+### Fixed
+- The internal `Plane_Size` of a full frame image was always 0, because the read position never came back from the decoder. It now holds the number of ROM bytes the image takes up, like the original WPC Edit. Not part of the public API; no change in output.
+- `processHitType()` used a ROM byte as a ROM position in the `AddrAddrAddr` branch (`HitTablePtr = ROM.byteAtAddr(Addr)` instead of `HitTablePtr = Addr`). The branch is not used by the library. No change in output.
+
 ## [0.5.0] - 2026-11-25
 
 ### Added
