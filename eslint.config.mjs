@@ -3,7 +3,7 @@ import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist/", "node_modules/", "roms/"] },
+  { ignores: ["dist/", "node_modules/", "roms/", "coverage/"] },
   {
     files: ["src/**/*.ts", "tests/**/*.ts"],
     extends: [eslint.configs.recommended, ...tseslint.configs.recommended],

@@ -2,3 +2,6 @@ node_modules/
 roms/
 dist/src/
 *.tsbuildinfo
+
+# Test coverage report (npm run test:coverage)
+coverage/

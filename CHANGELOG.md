@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `npm run test:coverage`: a report of which parts of `src/` the tests run (with `@vitest/coverage-v8`).
+- GitHub Actions runs `npm run check` on every push and pull request. The facit tests are skipped there, because the ROM files are not on GitHub.
+- A git hook (`.githooks/pre-push`) that runs `npm run check` with the ROM files before a push. Turn it on with `npm run hooks:on` and off with `npm run hooks:off`.
+
 ## [0.5.1] - 2026-11-26
 
 ### Changed

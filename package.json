@@ -19,7 +19,10 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:update": "vitest run --update",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build"
+    "test:coverage": "vitest run --coverage --coverage.include=src --coverage.reporter=text --coverage.reporter=html",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build",
+    "hooks:on": "chmod +x .githooks/pre-push && git config core.hooksPath .githooks",
+    "hooks:off": "git config --unset core.hooksPath"
   },
   "repository": {
     "type": "git",
@@ -32,6 +35,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.19.4",
+    "@vitest/coverage-v8": "^5.1.2",
     "eslint": "^10.15.0",
     "typescript": "^4.9.5",
     "typescript-eslint": "^8.74.0",

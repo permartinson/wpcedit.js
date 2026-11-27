@@ -1,0 +1,19 @@
+#!/bin/sh
+# Runs npm run check, with the ROM files, before anything is pushed.
+# The push is stopped if something fails.
+#
+# Turn on once with:      npm run hooks:on
+# Turn off for a while:   npm run hooks:off
+
+# GitHub Desktop does not always find Node, so add the usual places
+PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.homebrew/bin:$PATH"
+export PATH
+
+cd "$(git rev-parse --show-toplevel)" || exit 1
+echo "pre-push: running npm run check ..."
+if ! npm run check; then
+  echo ""
+  echo "pre-push: npm run check failed, so nothing was pushed."
+  echo "Fix the problem, or turn the check off with: npm run hooks:off"
+  exit 1
+fi

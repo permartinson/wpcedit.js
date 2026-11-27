@@ -109,7 +109,14 @@ npm run build       # compile src/ to dist/
 npm run typecheck
 npm run lint
 npm test            # facit tests, see below
+npm run test:update # regenerate the facit after an intended change
+npm run test:coverage  # which parts of src/ the tests run (report in coverage/)
+npm run check       # typecheck, lint, tests and build; exit code 0 = OK
 ```
+
+`npm run check` also runs on GitHub for every push and pull request (`.github/workflows/check.yml`). The facit tests are skipped there, because the ROM files are not on GitHub.
+
+To run `npm run check` with your ROM files before every push, turn on the git hook in `.githooks/` once with `npm run hooks:on`. Turn it off again with `npm run hooks:off`.
 
 ### Facit tests
 
