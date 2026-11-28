@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-28
+
 ### Added
 - `npm run test:coverage`: a report of which parts of `src/` the tests run (with `@vitest/coverage-v8`).
 - GitHub Actions runs `npm run check` on every push and pull request. The facit tests are skipped there, because the ROM files are not on GitHub.
@@ -66,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - A misplaced parenthesis that caused a bug when parsing a few ROMs.
 
-[Unreleased]: https://github.com/permartinson/wpcedit.js/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/permartinson/wpcedit.js/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/permartinson/wpcedit.js/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/permartinson/wpcedit.js/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/permartinson/wpcedit.js/compare/2795709...v0.5.0
