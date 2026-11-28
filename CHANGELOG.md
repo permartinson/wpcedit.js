@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions runs `npm run check` on every push and pull request. The facit tests are skipped there, because the ROM files are not on GitHub.
 - A git hook (`.githooks/pre-push`) that runs `npm run check` with the ROM files before a push. Turn it on with `npm run hooks:on` and off with `npm run hooks:off`.
 
+### Fixed
+- `placeInFullFrame` cuts a sprite off at the edges of the full frame image. Before, the part past the right edge was drawn at the start of the next row, and a negative x position gave wrong pixels. No change in the facit for the 11 test ROMs.
+
 ## [0.5.1] - 2026-11-26
 
 ### Changed

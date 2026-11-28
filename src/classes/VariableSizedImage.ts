@@ -96,7 +96,9 @@ export class VariableSizedImage {
     fullFrameImage = new Uint8Array(WPC.DmdPageBytes)
   ) {
     const vsByteWidth = Math.ceil(vsPlane.width / 8); // The size of the VS image, rounded up to full bytes
-    const bitOffset = xOffset % 8; // The bits will be moved this amount within the destination bytes
+    // The bits will be moved this amount within the destination bytes (0-7, also when xOffset is negative):
+    const bitOffset = ((xOffset % 8) + 8) % 8;
+    const rowBytes = WPC.DmdCols / 8;
 
     // Calculate how many bytes the VS image will need when the offset has been applied:
     const bytesPerRow = Math.ceil((bitOffset + vsPlane.width + 1) / 8);
@@ -104,7 +106,8 @@ export class VariableSizedImage {
 
     // Masks values for merging the fullframe image with the VS image
     const startMask = 0xff >> (8 - bitOffset);
-    const endMask = (0xff << (xOffset + vsPlane.width) % 8) & 0xff;
+    const endBits = (bitOffset + vsPlane.width) % 8; // The number of bits used in the last byte of a row (0 = all 8)
+    const endMask = (0xff << endBits) & 0xff;
 
     for (let i = 0; i < vsImageLength; i++) {
       const col = i % bytesPerRow;
@@ -117,7 +120,13 @@ export class VariableSizedImage {
       // Calculate the byte position in the fullframe image that will be written over by the new bytes:
       const destXPos = Math.floor(xOffset / 8) + col;
       const destYPos = yOffset + row;
-      const destPos = destYPos * (WPC.DmdCols / 8) + destXPos;
+      const destPos = destYPos * rowBytes + destXPos;
+
+      // Cut off the parts that are outside the full frame image. Without this, a byte past the
+      // right edge would be written at the start of the next row.
+      if (destXPos < 0 || destXPos >= rowBytes || destYPos < 0 || destYPos >= WPC.DmdRows) {
+        continue;
+      }
 
       // Store the original value of that byte so that we can merge them:
       const sourceByte = fullFrameImage[destPos];
@@ -140,7 +149,7 @@ export class VariableSizedImage {
 
       // Remove the last bits and merge with the fullframe image:
       if (col == bytesPerRow - 1) {
-        destByte = destByte & (0xff >> (8 - ((xOffset + vsPlane.width) % 8)));
+        destByte = destByte & (0xff >> (8 - endBits));
         destByte = destByte + (sourceByte & endMask);
       }
       // Store the byte back into the fullframe image:

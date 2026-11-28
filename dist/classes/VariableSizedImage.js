@@ -58,11 +58,13 @@ export class VariableSizedImage {
     }
     placeInFullFrame(vsPlane, xOffset, yOffset, fullFrameImage = new Uint8Array(WPC.DmdPageBytes)) {
         const vsByteWidth = Math.ceil(vsPlane.width / 8);
-        const bitOffset = xOffset % 8;
+        const bitOffset = ((xOffset % 8) + 8) % 8;
+        const rowBytes = WPC.DmdCols / 8;
         const bytesPerRow = Math.ceil((bitOffset + vsPlane.width + 1) / 8);
         const vsImageLength = bytesPerRow * vsPlane.height;
         const startMask = 0xff >> (8 - bitOffset);
-        const endMask = (0xff << (xOffset + vsPlane.width) % 8) & 0xff;
+        const endBits = (bitOffset + vsPlane.width) % 8;
+        const endMask = (0xff << endBits) & 0xff;
         for (let i = 0; i < vsImageLength; i++) {
             const col = i % bytesPerRow;
             const row = Math.floor(i / bytesPerRow);
@@ -70,7 +72,10 @@ export class VariableSizedImage {
             const thisByteIndex = vsByteWidth * row + col;
             const destXPos = Math.floor(xOffset / 8) + col;
             const destYPos = yOffset + row;
-            const destPos = destYPos * (WPC.DmdCols / 8) + destXPos;
+            const destPos = destYPos * rowBytes + destXPos;
+            if (destXPos < 0 || destXPos >= rowBytes || destYPos < 0 || destYPos >= WPC.DmdRows) {
+                continue;
+            }
             const sourceByte = fullFrameImage[destPos];
             let mergeByte = sourceByte & startMask;
             let prevByte = 0x00;
@@ -85,7 +90,7 @@ export class VariableSizedImage {
             }
             let destByte = prevByte + thisByte;
             if (col == bytesPerRow - 1) {
-                destByte = destByte & (0xff >> (8 - ((xOffset + vsPlane.width) % 8)));
+                destByte = destByte & (0xff >> (8 - endBits));
                 destByte = destByte + (sourceByte & endMask);
             }
             fullFrameImage[destPos] = destByte;
